@@ -1,6 +1,7 @@
 node_modules/
 .goddard/
 .tmp/
+dist/
 *.tgz
 coverage/
 .env
