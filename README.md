@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/goddard-mascot.png" width="260" alt="Goddard, a cheerful robot puppy keeping a folder of saved work safe">
+  <img src="docs/assets/goddard-mascot.png" width="260" alt="Goddard, Jimmy Neutron's robot dog">
 </p>
 
 <h1 align="center">Goddard</h1>
@@ -154,6 +154,6 @@ The usual path is **fork → branch → small change → pull request**. Anyone 
 
 ## Why “Goddard”?
 
-An affectionate nod to Jimmy Neutron's robot dog: a clever little companion who helps when an experiment gets complicated. This project's original robot-pup illustration has its own look; Goddard is an independent community project, with no affiliation or endorsement from the show or the coding-agent providers.
+An affectionate nod to Jimmy Neutron's robot dog: a clever little companion who helps when an experiment gets complicated. The README features the supplied image of our namesake. Goddard is an independent community project, with no affiliation or endorsement from the show or the coding-agent providers.
 
-Code, documentation, and the original mascot are [MIT licensed](LICENSE). See [third-party notices](THIRD_PARTY_NOTICES.md) and [artwork credits](docs/assets/README.md) for the supplied movie meme's separate rights.
+Code and documentation are [MIT licensed](LICENSE). The Jimmy Neutron mascot image and movie meme are third-party artwork excluded from that license; see [third-party notices](THIRD_PARTY_NOTICES.md) and [artwork credits](docs/assets/README.md).

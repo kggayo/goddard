@@ -1,8 +1,0 @@
-Use case: logo-brand.
-Asset: Original transparent robot-dog mascot for Goddard, an open-source coding-agent handoff CLI.
-
-Design brief: A friendly compact mechanical puppy with expressive asymmetrical ears, a wagging cable tail, and a round dark digital face with cheerful cyan eyes. Off-white enamel panels, teal hinges, and a small amber collar tag. Sitting proudly with one paw on a folder bearing a check mark, representing saved progress. Rounded sticker-like silhouette, crisp dark navy outlines, flat colors with subtle shading, readable at small sizes. Entire dog visible, centered, transparent background, no text or watermark.
-
-The project name nods to Jimmy Neutron's robot companion, but the illustration should have its own design. Avoid reproducing that character's segmented silver boxy body, exposed spring legs, gold muzzle, brain dome, or goggles.
-
-Generated with the built-in image-generation tool for this project on 2026-10-07.
