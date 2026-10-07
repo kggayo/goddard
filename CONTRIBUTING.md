@@ -32,6 +32,8 @@ Some useful starting points:
    npm run check
    npm test
    npm run demo
+   npm run package
+   npm run package:test
    ```
 
 5. Review your diff, commit, and push:
@@ -63,6 +65,8 @@ For documentation-only changes, check the commands and links you touched. You do
 | `docs/usage.md` | Complete user-facing behavior and limitations |
 
 This is a Node.js 24+ project using ES modules, Node's test runner, and built-in SQLite. There is no build step. Prefer the existing small modules and style over adding a framework.
+
+The package checks install the release tarball in a temporary prefix with an empty npm cache, then exercise the installed command without provider accounts. CI repeats this on Windows, macOS, and Linux. See [releasing](docs/releasing.md) for the publication workflow.
 
 ## What a good change preserves
 

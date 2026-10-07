@@ -26,7 +26,7 @@ npm run github:publish
 
 The helper refuses the wrong account, a dirty checkout, another repository's remote, or a private destination. It creates `kggayo/goddard` if missing, pushes `main` without force, and applies [the checked-in settings](../.github/repository-settings.json). It uses GitHub CLI's active account without changing global Git credential settings. If a later step fails, read the output and inspect the existing repository; an earlier creation or push may already have succeeded. Re-running from the same clean commit can finish setup.
 
-No npm registry release is made. `private: true` in `package.json` is an npm-publishing guard; it doesn't make the GitHub repository private or change the MIT license. Installation currently uses the GitHub checkout.
+The initial repository helper does not publish release packages. The [release workflow](releasing.md) publishes installable tarballs to GitHub Releases. `private: true` in `package.json` prevents accidental publication to the npm registry; it does not prevent installing the tarball or make the repository private.
 
 ## Repository defaults
 
@@ -50,6 +50,8 @@ These are the settings applied by the publication helper, not a claim that a par
 
 Use the `good first issue` label for a small, bounded task with reproduction steps or a clear expected result. A whole new provider adapter is better labeled `help wanted` and `provider-adapter`.
 
-## Releasing later
+## Publishing a release
 
 Make normal changes through branches and pull requests. Confirm CI on Windows, Linux, and macOS, update the version and relevant docs, and write release notes that separate working features from planned integrations. Don't advertise unlimited quota or lossless memory transfer. Never commit account logins, private recovery bundles, or `.tmp/` review material.
+
+Follow the [release checklist](releasing.md) to tag a reviewed version. GitHub Actions builds one package, tests that exact package on all three platforms, then publishes it with a SHA-256 checksum. No npm publishing credentials are required.

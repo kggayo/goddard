@@ -10,7 +10,8 @@ import { runWithAccounts } from './runner.js';
 import { AccountPool, loginProfile, probeProfile, profileEnv } from './accounts.js';
 import { CodexAdapter } from './adapters/codex.js';
 
-const help = `Goddard 0.3.0 — durable handoffs between coding agents
+const packageVersion = readJSON(new URL('../package.json', import.meta.url)).version;
+const help = `Goddard ${packageVersion} — durable handoffs between coding agents
 
 Usage: goddard <command> [arguments] [options]
 
@@ -34,6 +35,7 @@ Usage: goddard <command> [arguments] [options]
   doctor [--probe]                  Check CLIs; --probe checks Codex quota and sandbox
 
 Options:
+  --version, -v                     Show the installed Goddard version
   --workspace PATH                  Workspace root (default: current directory)
   --model NAME                      Optional provider-specific model override
   --account NAME                    auto (default), current, or a listed profile name
@@ -70,9 +72,11 @@ export async function main(argv = process.argv.slice(2)) {
     'grace-seconds': { type: 'string', default: '30' }, 'max-seconds': { type: 'string', default: '0' },
     warn: { type: 'string', default: '75' }, stop: { type: 'string', default: '85' },
     'read-only': { type: 'boolean' }, json: { type: 'boolean' }, help: { type: 'boolean', short: 'h' }, probe: { type: 'boolean' },
+    version: { type: 'boolean', short: 'v' },
     'claude-permission-mode': { type: 'string', default: 'acceptEdits' }, 'allow-tool': { type: 'string', multiple: true, default: [] }
   } });
   const [command, target, ...extra] = positionals;
+  if (flags.version) { console.log(packageVersion); return; }
   const print = value => console.log(flags.json ? JSON.stringify(value, null, 2) : typeof value === 'string' ? value : JSON.stringify(value, null, 2));
   if (!command || flags.help || command === 'help') { console.log(help); return; }
   const workspace = path.resolve(flags.workspace);

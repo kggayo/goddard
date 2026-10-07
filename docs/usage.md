@@ -12,15 +12,15 @@ Every Goddard run uses the managed interface so progress, conversation evidence,
 
 Requirements: **Node.js 24+**, Git for Git workspaces, and at least one installed coding CLI. Reuse an existing login or sign in through `goddard login` below. On Windows, Goddard launches native `.exe` files directly, without shell command interpolation. Node 24 may print an experimental warning for its built-in SQLite module.
 
-From this checkout:
+Install the latest release:
 
 ```powershell
-npm install
-npm link
+npm install --global https://github.com/kggayo/goddard/releases/latest/download/goddard.tgz
+goddard --version
 goddard doctor
 ```
 
-Or use `node C:/path/to/goddard/bin/goddard.js` in place of `goddard`. No global installation is required.
+See the [installation guide](installing.md) for specific versions, updates, and troubleshooting. To work from a source checkout instead, run `npm ci` then `npm link`, or use `node C:/path/to/goddard/bin/goddard.js` in place of `goddard`.
 
 In your project's root directory:
 

@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/kggayo/goddard/actions/workflows/ci.yml"><img src="https://github.com/kggayo/goddard/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="https://github.com/kggayo/goddard/releases/latest"><img src="https://img.shields.io/github/v/release/kggayo/goddard" alt="Latest release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-0d9488" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/Node.js-24%2B-339933" alt="Requires Node.js 24 or newer">
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/contributions-welcome-f59e0b" alt="Contributions welcome"></a>
@@ -28,12 +29,12 @@ Now you can wait, or open another agent and explain the whole project again. Whe
 You'll need **Node.js 24+**, **Git**, and either [Codex CLI](https://learn.chatgpt.com/docs/cli) or [Claude Code](https://code.claude.com/docs/en/quickstart) installed. If you're already signed in, Goddard can reuse that login.
 
 ```sh
-git clone https://github.com/kggayo/goddard.git
-cd goddard
-npm ci
-npm link
+npm install --global https://github.com/kggayo/goddard/releases/latest/download/goddard.tgz
+goddard --version
 goddard doctor
 ```
+
+That's it—no checkout or npm account needed. The same package works on Windows, macOS, and Linux. It includes Goddard's runtime dependencies; Node.js and the coding CLIs are installed separately. [Install, update, uninstall, and troubleshooting →](docs/installing.md)
 
 Not signed in yet? Run `goddard login main --agent codex` (or `--agent claude`) and complete the provider's normal login flow.
 
@@ -55,9 +56,12 @@ goddard run TASK_ID --agent claude --model sonnet --effort medium
 
 Chat, answer questions, and approve requests in Goddard's terminal. After a turn, type a follow-up or `/done` to finish. **Ctrl+C** asks for a checkpoint and stops; a second press stops immediately. Existing provider permissions still apply.
 
-No model account handy? Try the recovery demo from the Goddard checkout:
+No model account handy? Try the recovery demo from a source checkout:
 
 ```sh
+git clone https://github.com/kggayo/goddard.git
+cd goddard
+npm ci
 npm run demo
 ```
 
@@ -66,7 +70,7 @@ It simulates an interrupted Codex run and a Claude handoff. No login or model qu
 <details>
 <summary>Prefer to skip the global command?</summary>
 
-Use `node /absolute/path/to/goddard/bin/goddard.js` instead of `goddard`. On Windows, use the native Codex/Claude executable; see the [full guide](docs/usage.md#get-started).
+From a source checkout, use `node /absolute/path/to/goddard/bin/goddard.js` instead of `goddard`, or run `npm link` to use your development copy globally. On Windows, use the native Codex/Claude executable; see the [full guide](docs/usage.md#get-started).
 
 </details>
 
@@ -147,6 +151,7 @@ The usual path is **fork → branch → small change → pull request**. Anyone 
 ## The handy drawer
 
 - [Full usage guide](docs/usage.md): login, models, effort, interaction, profiles, recovery, and all commands.
+- [Installation guide](docs/installing.md): packages, updates, and troubleshooting.
 - [Roadmap](ROADMAP.md): current scope and future adapters.
 - [Contributing](CONTRIBUTING.md): local development and your first pull request.
 - [Maintainer guide](docs/maintaining.md): how repository access and reviews work.
