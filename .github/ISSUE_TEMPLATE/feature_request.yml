@@ -1,0 +1,28 @@
+name: Feature or adapter idea
+description: Tell us what would make the next handoff easier.
+title: "[Idea]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Start with the problem or workflow, even if you don't have a solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What could Goddard do?
+    validations:
+      required: true
+  - type: textarea
+    id: integration
+    attributes:
+      label: For an adapter, which exact product and interface?
+      description: Link official docs if you have them. Mention CLI/API, permissions, auth, events, and quota visibility. Ideas on the roadmap are not yet supported.
+  - type: textarea
+    id: contribution
+    attributes:
+      label: How would you like to help? (optional)
+      description: Research, testing, documentation, design, code, or just sharing the idea are all welcome.

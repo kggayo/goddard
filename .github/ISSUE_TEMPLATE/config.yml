@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions and conversations
+    url: https://github.com/kggayo/goddard/discussions
+    about: Not sure whether it's a bug? Start here.
+  - name: Private security report
+    url: https://github.com/kggayo/goddard/security/advisories/new
+    about: Report vulnerabilities privately, without posting real credentials.

@@ -1,0 +1,34 @@
+name: Bug report
+description: Help us follow the paw prints to a reproducible problem.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for helping! Remove tokens, emails, private source, and account files from anything you share. Security issue? Use the private report link instead."
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: How can we reproduce it?
+      description: Commands and steps in a small disposable workspace are ideal.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Your setup
+      description: OS, node --version, Goddard version/commit, codex --version or claude --version, and interactive/noninteractive mode. Do not include credentials.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Relevant output (optional)
+      description: A short redacted excerpt is better than a whole private transcript or handoff bundle.
+      render: text
