@@ -156,4 +156,4 @@ The usual path is **fork → branch → small change → pull request**. Anyone 
 
 An affectionate nod to Jimmy Neutron's robot dog: a clever little companion who helps when an experiment gets complicated. This project's original robot-pup illustration has its own look; Goddard is an independent community project, with no affiliation or endorsement from the show or the coding-agent providers.
 
-Code, documentation, and the original mascot are [MIT licensed](LICENSE). The supplied movie meme has separate [artwork credits and rights](docs/assets/README.md).
+Code, documentation, and the original mascot are [MIT licensed](LICENSE). See [third-party notices](THIRD_PARTY_NOTICES.md) and [artwork credits](docs/assets/README.md) for the supplied movie meme's separate rights.
