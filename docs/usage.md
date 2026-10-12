@@ -4,7 +4,7 @@
 
 Keep a coding task moving when an agent stops. Goddard runs Codex or Claude Code, saves progress and workspace evidence locally, and prepares a handoff that another session can use.
 
-Goddard **0.5.2** is a local command-line supervisor. It uses your installed coding CLIs, selects an available account profile automatically, and makes no direct model API calls of its own. Its terminal renderer uses Marked, highlight.js, and ANSI-aware text layout libraries.
+Goddard **0.6.0** is a local command-line supervisor. It uses your installed coding CLIs, selects an available account profile automatically, and makes no direct model API calls of its own. Its terminal renderer uses Marked, highlight.js, and ANSI-aware text layout libraries.
 
 Every Goddard run uses the managed interface so progress, conversation evidence, tool events, and workspace changes can be captured for handoff. Interact with the agent through Goddard.
 
@@ -21,6 +21,8 @@ goddard doctor
 ```
 
 See the [installation guide](installing.md) for specific versions, updates, and troubleshooting. To work from a source checkout instead, run `npm ci` then `npm link`, or use `node C:/path/to/goddard/bin/goddard.js` in place of `goddard`.
+
+After installing 0.6.0 or later, stop active runs and use `goddard update` to install the latest stable release. `goddard update --check` only checks for availability; add `--json` for machine-readable output. These commands work outside a project and do not open the task database. Older versions need the npm install command above once to get this feature. Source checkouts and `npm link` installations can check for releases but must update their checkout manually.
 
 In your project's root directory:
 

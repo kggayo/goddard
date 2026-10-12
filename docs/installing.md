@@ -19,11 +19,10 @@ Go to your project and start a task:
 ```sh
 cd path/to/your-project
 goddard init
-goddard new "Fix the login bug and run the relevant tests"
-goddard run TASK_ID --agent codex --effort high
+goddard start "Fix the login bug and run the relevant tests" --agent codex --effort high
 ```
 
-Replace `TASK_ID` with the ID printed by `new`. Use `--agent claude` for Claude Code. See the [full usage guide](usage.md) for login, models, effort, chat, approvals, and account switching.
+Use `--agent claude` for Claude Code. To resume an existing task, use `goddard run TASK_ID --agent codex`; find its ID with `goddard list`. See the [full usage guide](usage.md) for login, models, effort, chat, approvals, and account switching.
 
 ## Specific versions and downloaded files
 
@@ -43,7 +42,22 @@ On Windows, use `Get-FileHash ./goddard.tgz -Algorithm SHA256`; on macOS, use `s
 
 ## Update or uninstall
 
-Stop active Goddard runs, then rerun the latest-release install command to update. `goddard --version` confirms the installed version. These GitHub-hosted packages are not updated through `npm update -g goddard`.
+Stop active Goddard runs, then update from any directory:
+
+```sh
+goddard update
+goddard --version
+```
+
+To check without installing, use `goddard update --check`. Add `--json` to either command for machine-readable output. A check exits successfully when it can determine release availability, including when a newer release is available; failures exit nonzero.
+
+**On a version before 0.6.0?** Run the latest-release npm install command at the top of this page once. Those older versions do not know the `update` command yet. These GitHub-hosted packages are not updated through `npm update -g goddard`.
+
+The updater reads the latest stable release from GitHub, downloads that version's archive and checksum, verifies SHA-256 and package name/version, and installs into the global npm prefix of the running Goddard command. It skips installation when already current and never automatically downgrades a newer version. npm runs without lifecycle scripts and installs the bundled archive offline. The release check and download still require internet access; no GitHub login is needed. Rate limits, network errors, and installation errors are reported instead of claiming success.
+
+Updates replace the CLI package. Workspace files, saved tasks, handoffs, and account profiles are kept. Stop other running Goddard sessions first; the updater does not stop them for you. Source checkouts, `npm link`, and local project installs are not replaced by the updater. Update those with their original installation method; `update --check` still works.
+
+To uninstall:
 
 ```sh
 npm uninstall --global goddard
