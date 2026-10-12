@@ -4,7 +4,7 @@
 
 Keep a coding task moving when an agent stops. Goddard runs Codex or Claude Code, saves progress and workspace evidence locally, and prepares a handoff that another session can use.
 
-Goddard **0.5.1** is a local command-line supervisor. It uses your installed coding CLIs, selects an available account profile automatically, and makes no direct model API calls of its own. Its terminal renderer uses Marked, highlight.js, and ANSI-aware text layout libraries.
+Goddard **0.5.2** is a local command-line supervisor. It uses your installed coding CLIs, selects an available account profile automatically, and makes no direct model API calls of its own. Its terminal renderer uses Marked, highlight.js, and ANSI-aware text layout libraries.
 
 Every Goddard run uses the managed interface so progress, conversation evidence, tool events, and workspace changes can be captured for handoff. Interact with the agent through Goddard.
 
@@ -148,6 +148,16 @@ goddard run TASK_ID --agent claude --interactive
 Goddard prints agent messages, presents structured questions with numbered options or free-text answers, and shows permission requests with their command, tool input, or requested scope. Type `y` or `yes` to approve; Enter or any other response declines. Goddard does not save permanent approval rules. Additional Codex permission grants are limited to the displayed turn scope. Claude's existing permission mode and allow rules may permit actions without a new prompt.
 
 For questions, enter an option number or your own text. Claude questions supporting multiple choices accept comma-separated option numbers. Enter or `/cancel` skips a question. Plain-text questions can be answered at the follow-up prompt after the turn. Question answers and follow-ups become saved user updates. `/done` ends the run at that prompt; other text is sent as a new turn in the same provider session. Provider slash commands, rich widgets, and secret-input prompts are not implemented. Unsupported requests are declined or left unanswered.
+
+Wait for the input prompt before typing. For example, after the agent asks whether to create a PR, you should see:
+
+```text
+You (Enter or /done to save and exit): Yes, create a PR.
+```
+
+An approval prompt only answers that permission request. Text entered while there is no active prompt is not sent or queued; Goddard prints a notice so you can send it again at the next prompt. It cannot silently become an answer to a later approval request.
+
+**Claude finished, but no `You` prompt appeared?** Update Goddard to 0.5.2 or later and use a current Claude Code CLI. Earlier Goddard versions could keep waiting when Claude answered several checkpoint requests in a single turn. Goddard now matches results to their supplied message IDs, including merged requests. If an older run is stuck, press Ctrl+C once and wait for the handoff to finish. Save any unsent response with `goddard note TASK_ID "Yes, create a PR."`, then resume with `goddard run TASK_ID --agent claude --interactive`, adding your chosen model and effort again. The saved note is included in the handoff.
 
 When input/output is redirected, Goddard disables interactive prompts. `--non-interactive` explicitly selects that behavior, and `--interactive` requires a terminal. Requests requiring user input are declined or left unanswered, never automatically approved by Goddard. Provider permission rules still apply. Periodic checkpoint prompts pause while waiting for user input; file capture and available quota monitoring continue.
 

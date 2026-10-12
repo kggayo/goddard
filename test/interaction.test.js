@@ -94,6 +94,27 @@ test('terminal defaults to deny, supports multiple selections, and settles on EO
   assert.equal(await ui.request({ kind: 'followup' }), null);
 });
 
+test('Claude returns to user input after merging a checkpoint into the task turn', async t => {
+  const { dir, store, task } = setup(t);
+  const { ui, transcript } = terminal(t, ['Yes, create a PR.', '/done']);
+  const source = new ClaudeAdapter({ workspace: dir, binary: process.execPath, args: [fixture, 'claude', 'coalesced'] });
+  const result = await supervise(store, task.id, { provider: 'claude', adapter: source, interaction: ui, maxSeconds: 4, graceSeconds: 0.05, log: () => {} });
+  assert.equal(result.status, 'finished');
+  assert.match(transcript(), /You \(/);
+  const prompts = lines(path.join(dir, 'prompts.jsonl'));
+  assert.equal(prompts.length, 3);
+  assert.match(prompts[1], /Goddard checkpoint request/);
+  assert.equal(prompts[2], 'Yes, create a PR.');
+  assert.ok(store.notes(task.id).some(note => note.text === 'Yes, create a PR.'));
+});
+
+test('text outside an active prompt is acknowledged and never reused as approval', async t => {
+  const { ui, input, transcript } = terminal(t, ['no']);
+  input.write('yes\n');
+  assert.match(transcript(), /Input was not sent/);
+  assert.equal(await ui.request({ kind: 'approval', title: 'Approve a command' }), false);
+});
+
 test('Claude arguments retain model, effort, and permission settings without changing the parent environment', () => {
   const opts = { model: 'model with spaces', effort: 'high', readOnly: true };
   const claude = claudeArgs(opts);
