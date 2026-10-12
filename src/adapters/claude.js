@@ -2,10 +2,12 @@ import { EventEmitter } from 'node:events';
 import { Transport } from './transport.js';
 import { executable } from '../util.js';
 import { requestUser, cancelRequests } from './requests.js';
+import { resolvePermissions } from '../permissions.js';
 
-export function claudeArgs({ model, effort, readOnly, claudePermissionMode = 'acceptEdits', allowedTools = [] }) {
+export function claudeArgs({ model, effort, readOnly, bypassPermissions, claudePermissionMode, allowedTools = [] }) {
+  const permissions = resolvePermissions({ provider: 'claude', readOnly, bypassPermissions, claudePermissionMode });
   return ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--permission-prompt-tool', 'stdio',
-    '--permission-mode', readOnly ? 'plan' : claudePermissionMode,
+    '--permission-mode', readOnly ? 'plan' : permissions.claudePermissionMode,
     ...allowedTools.flatMap(tool => ['--allowedTools', tool]), ...(model ? ['--model', model] : []), ...(effort ? ['--effort', effort] : [])];
 }
 
@@ -18,8 +20,9 @@ export function claudeEnv(effort, base = process.env) {
 }
 
 export class ClaudeAdapter extends EventEmitter {
-  constructor({ workspace, model, effort, readOnly = false, claudePermissionMode = 'acceptEdits', allowedTools = [], binary, args, env }) {
-    super(); Object.assign(this, { workspace, model, effort, readOnly, claudePermissionMode, allowedTools, binary, args, env }); this.pendingTurns = 0;
+  constructor({ workspace, model, effort, readOnly = false, bypassPermissions = false, claudePermissionMode, allowedTools = [], binary, args, env }) {
+    super(); Object.assign(this, { workspace, model, effort, readOnly, allowedTools, binary, args, env },
+      resolvePermissions({ provider: 'claude', readOnly, bypassPermissions, claudePermissionMode })); this.pendingTurns = 0;
     this.windows = new Map();
   }
   async connect() {

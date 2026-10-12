@@ -89,6 +89,28 @@ test('quota cache respects all limiting reset windows and falls back to a finite
 });
 
 for (const provider of ['codex', 'claude']) {
+  test(`${provider} bypass survives automatic failover through the production adapter path`, async t => {
+    let transcript = '';
+    const h = harness(t, provider, { current: { scenario: 'limited' }, second: { scenario: 'destination' } }, {
+      bypassPermissions: true, adapterFactory: undefined, binary: process.execPath, log: text => { transcript += text; }
+    });
+    h.options.args = [fixture, provider, 'run', checkpointFile(h.store, h.task.id)];
+    const result = await runWithAccounts(h.store, h.task.id, h.options);
+    assert.equal(result.status, 'finished');
+    assert.deepEqual(result.attempts, ['current', 'second']);
+    assert.equal(h.store.latestCheckpoint(h.task.id).data.status, 'complete');
+    assert.ok(fs.existsSync(path.join(h.dir, 'restored.txt')));
+    const starts = h.store.events(h.task.id, 1000).filter(event => event.type === 'run.started');
+    assert.equal(starts.length, 2);
+    assert.ok(starts.every(event => event.payload.permissions.bypassPermissions));
+    assert.equal(transcript.match(/Permission bypass enabled/g).length, 2);
+    if (provider === 'codex') {
+      const threads = h.trace().filter(row => row.event === 'thread');
+      assert.equal(threads.length, 2);
+      assert.ok(threads.every(row => row.sandbox === 'danger-full-access' && row.approvalPolicy === 'never'));
+    } else assert.ok(starts.every(event => event.payload.permissions.mode === 'bypassPermissions'));
+  });
+
   test(`${provider} default failover sends checkpoint, files, instructions and uncertain operations to the next account`, async t => {
     const h = harness(t, provider, { current: { scenario: 'limited' }, second: { scenario: 'destination' } });
     const result = await runWithAccounts(h.store, h.task.id, h.options);

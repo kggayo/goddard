@@ -4,6 +4,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 
 export const now = () => new Date().toISOString();
+export const packageVersion = readJSON(new URL('../package.json', import.meta.url)).version;
 export const id = () => randomUUID();
 export const hash = value => createHash('sha256').update(value).digest('hex');
 export const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));

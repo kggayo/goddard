@@ -26,6 +26,7 @@ try {
   const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   assert.equal(cli(['--version']), pkg.version);
   assert.match(cli(['--help']), /durable handoffs between coding agents/);
+  assert.match(cli(['--help']), /--dangerously-skip-permissions/);
   cli(['init']);
   fs.writeFileSync(path.join(workspace, 'hello.txt'), 'Packaged installation works.\n');
   const task = JSON.parse(cli(['new', 'Check the installed package', '--json']));

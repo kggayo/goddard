@@ -2,15 +2,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { Store } from './store.js';
-import { atomicWrite, readJSON, version } from './util.js';
+import { atomicWrite, readJSON, version, packageVersion } from './util.js';
 import { checkpointFile, ingestCheckpoint, seedCheckpoint, validateCheckpoint } from './checkpoint.js';
 import { captureWorkspace } from './workspace.js';
 import { exportBundle, importBundle, unpackBundle, writeHandoff } from './handoff.js';
 import { runWithAccounts } from './runner.js';
 import { AccountPool, loginProfile, probeProfile, profileEnv } from './accounts.js';
 import { CodexAdapter } from './adapters/codex.js';
+import { resolvePermissions } from './permissions.js';
 
-const packageVersion = readJSON(new URL('../package.json', import.meta.url)).version;
 const help = `Goddard ${packageVersion} — durable handoffs between coding agents
 
 Usage: goddard <command> [arguments] [options]
@@ -51,7 +51,8 @@ Options:
   --grace-seconds N                 Time allowed for a final checkpoint (default: 30)
   --max-seconds N                   Limit a run's duration (default: unlimited)
   --read-only                       Use the provider's read-only / planning mode
-  --claude-permission-mode MODE      acceptEdits (default) or auto
+  --dangerously-skip-permissions     Bypass provider approvals; also disables Codex sandbox
+  --claude-permission-mode MODE      acceptEdits (default), auto, or bypassPermissions
   --allow-tool RULE                 Claude tool permission rule (repeatable)
   --json                            Print machine-readable results (except run)
 
@@ -73,7 +74,8 @@ export async function main(argv = process.argv.slice(2)) {
     warn: { type: 'string', default: '75' }, stop: { type: 'string', default: '85' },
     'read-only': { type: 'boolean' }, json: { type: 'boolean' }, help: { type: 'boolean', short: 'h' }, probe: { type: 'boolean' },
     version: { type: 'boolean', short: 'v' },
-    'claude-permission-mode': { type: 'string', default: 'acceptEdits' }, 'allow-tool': { type: 'string', multiple: true, default: [] }
+    'claude-permission-mode': { type: 'string' }, 'dangerously-skip-permissions': { type: 'boolean' },
+    'allow-tool': { type: 'string', multiple: true, default: [] }
   } });
   const [command, target, ...extra] = positionals;
   if (flags.version) { console.log(packageVersion); return; }
@@ -189,7 +191,8 @@ export async function main(argv = process.argv.slice(2)) {
       print(await exportBundle(store, task, path.resolve(flags.out))); return;
     }
     if (!['codex', 'claude'].includes(flags.agent)) throw new Error('--agent must be codex or claude.');
-    if (!['acceptEdits', 'auto'].includes(flags['claude-permission-mode'])) throw new Error('--claude-permission-mode must be acceptEdits or auto.');
+    const permissions = resolvePermissions({ provider: flags.agent, readOnly: flags['read-only'],
+      bypassPermissions: flags['dangerously-skip-permissions'], claudePermissionMode: flags['claude-permission-mode'] });
     if (flags.interactive && flags['non-interactive']) throw new Error('Choose either --interactive or --non-interactive.');
     if (flags.effort && !/^[a-z][a-z0-9_-]{0,49}$/.test(flags.effort)) throw new Error('--effort must be a provider effort level, such as low, medium, or high.');
     if (flags.agent === 'claude' && flags.effort && !['low', 'medium', 'high', 'xhigh', 'max'].includes(flags.effort)) throw new Error('Claude --effort must be low, medium, high, xhigh, or max (subject to model support).');
@@ -198,7 +201,7 @@ export async function main(argv = process.argv.slice(2)) {
     const options = { provider: flags.agent, account: flags.account, noFailover: flags['no-failover'], model: flags.model, effort: flags.effort, readOnly: flags['read-only'],
       plain: flags.plain, noColor: flags['no-color'],
       interactive: !flags['non-interactive'] && Boolean(flags.interactive || (process.stdin.isTTY && process.stdout.isTTY)),
-      claudePermissionMode: flags['claude-permission-mode'], allowedTools: flags['allow-tool'],
+      ...permissions, allowedTools: flags['allow-tool'],
       checkpointSeconds: numeric('checkpoint-seconds', 5, 86400), snapshotSeconds: numeric('snapshot-seconds', 1, 3600),
       graceSeconds: numeric('grace-seconds', 0, 300), maxSeconds: numeric('max-seconds', 0, 604800), warn: numeric('warn', 1, 99), stop: numeric('stop', 2, 100) };
     const result = await runWithAccounts(store, task, options);

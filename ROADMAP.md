@@ -8,6 +8,7 @@ Goddard's job is simple: keep a coding task understandable and recoverable when 
 - [x] Structured checkpoints, workspace evidence, and portable handoffs.
 - [x] Interactive questions, approvals, follow-ups, model and effort selection.
 - [x] Automatic account-profile discovery, selection, and quota failover.
+- [x] Explicit permission bypass for managed Claude and Codex runs.
 - [x] Recovery tests with simulated crashes and quota exhaustion.
 
 ## Make the everyday path smoother

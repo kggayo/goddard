@@ -8,11 +8,13 @@ Include the version or commit, operating system, affected provider CLI, a minima
 
 ## Supported versions
 
-Security work targets the latest code on `main` and the current `0.3.x` line. Older versions are not maintained separately. This is an early community project; there is no guaranteed response or fix timeline.
+Security work targets the latest code on `main` and the current `0.4.x` line. Older versions are not maintained separately. This is an early community project; there is no guaranteed response or fix timeline.
 
 ## Expected boundaries
 
 Provider CLIs own authentication. Goddard doesn't make credentials part of a handoff, and it doesn't automatically approve user permission requests. Account availability checks are not proof that a login or model call will succeed.
+
+`--dangerously-skip-permissions` is an explicit request for provider permission bypass. It selects Claude's `bypassPermissions` mode or disables Codex's approvals and filesystem/network sandbox. The option is not enabled by default or inherited from saved handoffs. See [permission bypass](docs/usage.md#permission-bypass) for its scope and conflicts.
 
 Handoff bundles can contain source code and tool output. Redaction and filename exclusions are best effort, and bundles are not encrypted. Review a bundle before sharing it. A malicious coding agent is not made safe by wrapping it in Goddard; the provider's sandbox and your permission choices remain important.
 

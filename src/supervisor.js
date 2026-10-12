@@ -6,8 +6,10 @@ import { buildPrompt, writeHandoff } from './handoff.js';
 import { usageDecision } from './usage.js';
 import { Interaction } from './interaction.js';
 import { TerminalDisplay, terminalText } from './terminal.js';
+import { resolvePermissions } from './permissions.js';
 
 export async function supervise(store, task, options = {}) {
+  options = { ...options, ...resolvePermissions(options) };
   const { provider = 'codex', checkpointSeconds = 120, snapshotSeconds = 15, graceSeconds = 30,
     warn = 75, stop = 85, maxSeconds = 0, adapter: suppliedAdapter } = options;
   usageDecision([], { warn, stop });
@@ -124,7 +126,12 @@ export async function supervise(store, task, options = {}) {
   try {
     seedCheckpoint(store, task);
     await capture();
-    evidence('run.started', { provider, account: options.accountName ?? 'current', model: options.model ?? null, effort: options.effort ?? null, interactive: Boolean(interaction), checkpointSeconds, snapshotSeconds, warn, stop });
+    evidence('run.started', { provider, account: options.accountName ?? 'current', model: options.model ?? null, effort: options.effort ?? null,
+      permissions: { bypassPermissions: options.bypassPermissions, readOnly: Boolean(options.readOnly), ...(provider === 'claude' ? { mode: options.claudePermissionMode } : {}) },
+      interactive: Boolean(interaction), checkpointSeconds, snapshotSeconds, warn, stop });
+    if (options.bypassPermissions) log(provider === 'codex'
+      ? 'Permission bypass enabled: Codex approvals and sandbox disabled.'
+      : 'Permission bypass enabled: Claude bypassPermissions mode.');
     log(`Task ${task}\nAgent: ${provider}\nWorkspace: ${store.workspace}\nPress Ctrl+C to prepare a handoff; press again to stop immediately.`);
     windows = await adapter.connect();
     const preflight = usageDecision(windows, { warn, stop });

@@ -3,8 +3,10 @@ import { supervise } from './supervisor.js';
 import { usageDecision } from './usage.js';
 import { writeHandoff } from './handoff.js';
 import { TerminalDisplay, terminalText } from './terminal.js';
+import { resolvePermissions } from './permissions.js';
 
 export async function runWithAccounts(store, task, options = {}) {
+  options = { ...options, ...resolvePermissions(options) };
   const { provider = 'codex', account = 'auto', warn = 75, stop = 85 } = options;
   usageDecision([], { warn, stop });
   const pool = options.pool ?? new AccountPool();

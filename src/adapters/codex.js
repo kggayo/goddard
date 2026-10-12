@@ -1,12 +1,14 @@
 import { EventEmitter } from 'node:events';
 import { Transport, Rpc } from './transport.js';
-import { executable } from '../util.js';
+import { executable, packageVersion } from '../util.js';
 import { codexUsage } from '../usage.js';
 import { requestUser, cancelRequests } from './requests.js';
+import { resolvePermissions } from '../permissions.js';
 
 export class CodexAdapter extends EventEmitter {
-  constructor({ workspace, model, effort, interactive = false, readOnly = false, binary, env, args = ['app-server', '--listen', 'stdio://'] }) {
-    super(); Object.assign(this, { workspace, model, effort, interactive, readOnly, binary, args, env }); this.fileChanges = new Map();
+  constructor({ workspace, model, effort, interactive = false, readOnly = false, bypassPermissions = false, binary, env, args = ['app-server', '--listen', 'stdio://'] }) {
+    super(); Object.assign(this, { workspace, model, effort, interactive, readOnly, binary, args, env },
+      resolvePermissions({ provider: 'codex', readOnly, bypassPermissions })); this.fileChanges = new Map();
   }
   async connect() {
     this.transport = new Transport(this.binary ?? executable('codex'), this.args, this.workspace, this.env);
@@ -17,7 +19,7 @@ export class CodexAdapter extends EventEmitter {
     this.transport.on('stderr', text => this.emit('evidence', 'agent.stderr', { text }));
     this.transport.on('close', result => { cancelRequests(this); this.emit('exit', result); });
     this.transport.on('message', message => this.onMessage(message));
-    const info = await this.rpc.request('initialize', { clientInfo: { name: 'goddard', title: 'Goddard', version: '0.3.0' }, capabilities: { experimentalApi: true } });
+    const info = await this.rpc.request('initialize', { clientInfo: { name: 'goddard', title: 'Goddard', version: packageVersion }, capabilities: { experimentalApi: true } });
     this.transport.send({ method: 'initialized', params: {} });
     this.emit('evidence', 'provider.connected', { provider: 'codex', info });
     return this.readUsage();
@@ -29,7 +31,9 @@ export class CodexAdapter extends EventEmitter {
     } catch (error) { this.emit('evidence', 'usage.unavailable', { message: error.message }); return []; }
   }
   async startTask(prompt) {
-    const params = { cwd: this.workspace, approvalPolicy: this.interactive && !this.readOnly ? 'on-request' : 'never', sandbox: this.readOnly ? 'read-only' : 'workspace-write' };
+    const params = { cwd: this.workspace,
+      approvalPolicy: this.interactive && !this.readOnly && !this.bypassPermissions ? 'on-request' : 'never',
+      sandbox: this.bypassPermissions ? 'danger-full-access' : this.readOnly ? 'read-only' : 'workspace-write' };
     if (this.model) params.model = this.model;
     const result = await this.rpc.request('thread/start', params);
     this.thread = result.thread.id; this.emit('session', this.thread);

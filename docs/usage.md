@@ -4,7 +4,7 @@
 
 Keep a coding task moving when an agent stops. Goddard runs Codex or Claude Code, saves progress and workspace evidence locally, and prepares a handoff that another session can use.
 
-Goddard **0.3.0** is a local command-line supervisor. It uses your installed coding CLIs, selects an available account profile automatically, and makes no direct model API calls of its own. Its terminal renderer uses Marked, highlight.js, and ANSI-aware text layout libraries.
+Goddard **0.4.0** is a local command-line supervisor. It uses your installed coding CLIs, selects an available account profile automatically, and makes no direct model API calls of its own. Its terminal renderer uses Marked, highlight.js, and ANSI-aware text layout libraries.
 
 Every Goddard run uses the managed interface so progress, conversation evidence, tool events, and workspace changes can be captured for handoff. Interact with the agent through Goddard.
 
@@ -250,14 +250,33 @@ goddard run TASK_ID --agent codex --warn 70 --stop 80 --checkpoint-seconds 90
 goddard run TASK_ID --agent claude --max-seconds 1800
 ```
 
-Codex runs with its workspace-write sandbox. Interactive runs use `on-request` approval; noninteractive runs use `never`. Goddard never automatically approves an additional permission request. Claude defaults to `acceptEdits`; shell commands requiring additional permission are presented in interactive mode and denied in noninteractive mode. Choose Claude's automatic permission review if supported by your version, or explicitly allow a narrow tool rule:
+By default, Codex runs with its workspace-write sandbox. Interactive runs use `on-request` approval; noninteractive runs use `never`. Goddard never automatically approves an additional permission request. Claude defaults to `acceptEdits`; shell commands requiring additional permission are presented in interactive mode and denied in noninteractive mode. Choose Claude's automatic permission review if supported by your version, or explicitly allow a narrow tool rule:
 
 ```powershell
 goddard run TASK_ID --agent claude --claude-permission-mode auto
 goddard run TASK_ID --agent claude --allow-tool "Bash(npm test)"
 ```
 
-Goddard does not use either provider's permission-bypass flag. `--read-only` selects Codex read-only mode or Claude planning mode; an agent in that mode may be unable to write its checkpoint. Read-only runs decline permission escalations. Normal CLI account/API billing and policy still apply.
+`--read-only` selects Codex read-only mode or Claude planning mode; an agent in that mode may be unable to write its checkpoint. Read-only runs decline permission escalations. Normal CLI account/API billing and policy still apply.
+
+### Permission bypass
+
+Starting in **v0.4.0**, explicitly opt into bypass for either managed provider:
+
+```sh
+goddard run TASK_ID --agent claude --model claude-opus-5-5 --effort medium --dangerously-skip-permissions
+goddard run TASK_ID --agent codex --effort high --dangerously-skip-permissions
+```
+
+For Claude, `--claude-permission-mode bypassPermissions` is an equivalent alternative. The mode skips Claude's normal permission prompts. For Codex, Goddard requests `approvalPolicy: never` and `sandbox: danger-full-access`, removing the Codex filesystem and network sandbox as well as approval prompts. Commands can act with your OS user's access. Use this only for work where you intend to grant that access; provider and organization restrictions still apply.
+
+Goddard displays bypass at startup and records the selected settings in each run's evidence. Checkpointing, snapshots, quota handling, and handoffs continue. Automatic account failover preserves bypass for the current invocation. It is not saved as a global default or re-enabled from a previous handoff: pass the flag again on a new invocation if you want it.
+
+User questions still need answers. Any unexpected provider approval request continues through the normal interactive handler and is declined without interactive input. The option does not make Goddard answer every request with yes.
+
+`--read-only` conflicts with either bypass spelling. Combining the shared bypass flag with explicit Claude `auto` or `acceptEdits` also produces an error. `--claude-permission-mode` is only valid with `--agent claude`.
+
+See [Claude permission modes](https://code.claude.com/docs/en/permissions) and [Codex sandbox and approvals](https://learn.chatgpt.com/docs/sandboxing) for the provider-level controls.
 
 ## Recovery and portability
 
@@ -296,7 +315,7 @@ node scripts/smoke.js claude
 
 If Claude reports an expired OAuth session, sign in using the Claude CLI and retry. If `doctor --probe` reports a Codex Windows sandbox setup error, repair that sandbox through Codex's supported setup before running file-editing tasks. Goddard does not disable the sandbox to work around setup failures. `GODDARD_CODEX_BIN` and `GODDARD_CLAUDE_BIN` can select an absolute native executable path when it is not on PATH.
 
-## Scope of version 0.3
+## Scope of version 0.4
 
 This version supervises sessions it launches and automatically selects and switches configured account profiles on quota stops. It does not attach to arbitrary desktop chats, restore remote environments, transfer browser state, or provide a dashboard. Switching agents is explicit. Checkpoint requests are best effort; evidence capture continues independently. No additional agent framework or hosted service is required for the supervisor.
 

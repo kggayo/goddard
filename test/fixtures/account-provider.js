@@ -75,7 +75,7 @@ readline.createInterface({ input: process.stdin }).on('line', line => {
     case 'initialize': reply({}); break;
     case 'account/read': reply({ account: config.auth === false ? null : { type: 'chatgpt' }, requiresOpenaiAuth: true }); break;
     case 'account/rateLimits/read': reply({ rateLimits: { primary: { usedPercent: config.quota ?? 10, resetsAt: Date.now() / 1000 + 600 } } }); break;
-    case 'thread/start': model = message.params.model; reply({ thread: { id: `session-${path.basename(directory)}` } }); break;
+    case 'thread/start': model = message.params.model; trace({ event: 'thread', ...message.params }); reply({ thread: { id: `session-${path.basename(directory)}` } }); break;
     case 'turn/start': effort = message.params.effort; reply({ turn: { id: 'turn' } }); setTimeout(() => work(message.params.input[0].text), 20); break;
     case 'turn/steer': reply({}); save('in_progress'); done(); break;
     case 'turn/interrupt': reply({}); break;
