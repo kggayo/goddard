@@ -22,7 +22,7 @@ Now you can wait, or open another agent and explain the whole project again. Whe
 
 **Goddard carries the work in progress to the next session.** It runs Codex or Claude Code, asks for progress checkpoints, saves workspace evidence, and hands the next account or agent a recovery brief. Less retelling. More finishing.
 
-**Early release · v0.5.2.** The core is working; real-world reports and small improvements are very welcome.
+**Early release · v0.6.0.** The core is working; real-world reports and small improvements are very welcome.
 
 ## Take it for a walk
 
@@ -35,6 +35,8 @@ goddard doctor
 ```
 
 That's it—no checkout or npm account needed. The same package works on Windows, macOS, and Linux. It includes Goddard's runtime dependencies; Node.js and the coding CLIs are installed separately. [Install, update, uninstall, and troubleshooting →](docs/installing.md)
+
+Already installed? Stop active Goddard runs and use `goddard update` for the latest release, or `goddard update --check` to check first. Versions before 0.6.0 need the npm install command above once to get the updater.
 
 Not signed in yet? Run `goddard login main --agent codex` (or `--agent claude`) and complete the provider's normal login flow.
 

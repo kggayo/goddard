@@ -31,6 +31,7 @@ Usage: goddard <command> [arguments] [options]
   import PATH.json                  Import into a matching workspace; never overwrite files
   recover                           Recover runs after their processes have exited
   doctor [--probe]                  Check CLIs; --probe checks Codex quota and sandbox
+  update [--check]                  Install the latest release, or just check for it
 
 Options:
   --version, -v                     Show the installed Goddard version
@@ -60,7 +61,7 @@ Same workspace: run TASK --agent claude continues a Codex task, and vice versa.
 Goddard supervises sessions it launches. It does not attach to desktop chats.
 `;
 
-export async function main(argv = process.argv.slice(2), { runTask } = {}) {
+export async function main(argv = process.argv.slice(2), { runTask, update } = {}) {
   const { values: flags, positionals } = parseArgs({ args: argv, allowPositionals: true, options: {
     workspace: { type: 'string', default: process.cwd() }, agent: { type: 'string', default: 'codex' },
     model: { type: 'string' }, file: { type: 'string' }, out: { type: 'string' }, 'goal-file': { type: 'string' },
@@ -71,7 +72,7 @@ export async function main(argv = process.argv.slice(2), { runTask } = {}) {
     'grace-seconds': { type: 'string', default: '30' }, 'max-seconds': { type: 'string', default: '0' },
     warn: { type: 'string', default: '75' }, stop: { type: 'string', default: '85' },
     'read-only': { type: 'boolean' }, json: { type: 'boolean' }, help: { type: 'boolean', short: 'h' }, probe: { type: 'boolean' },
-    version: { type: 'boolean', short: 'v' },
+    version: { type: 'boolean', short: 'v' }, check: { type: 'boolean' },
     'claude-permission-mode': { type: 'string' }, 'dangerously-skip-permissions': { type: 'boolean' },
     'allow-tool': { type: 'string', multiple: true, default: [] }
   } });
@@ -79,6 +80,18 @@ export async function main(argv = process.argv.slice(2), { runTask } = {}) {
   if (flags.version) { console.log(packageVersion); return; }
   const print = value => console.log(flags.json ? JSON.stringify(value, null, 2) : typeof value === 'string' ? value : JSON.stringify(value, null, 2));
   if (!command || flags.help || command === 'help') { console.log(help); return; }
+  if (flags.check && command !== 'update') throw new Error('--check is only supported by goddard update.');
+  if (command === 'update') {
+    if (target || extra.length) throw new Error('Use goddard update [--check] [--json].');
+    const result = await (update ?? (await import('./update.js')).updateGoddard)({ check: Boolean(flags.check), log: flags.json ? () => {} : console.log });
+    const messages = {
+      available: `Goddard ${result.latestVersion} is available (installed: ${result.currentVersion}). Run goddard update to install it.`,
+      up_to_date: `Goddard ${result.currentVersion} is already up to date.`,
+      ahead: `Installed Goddard ${result.currentVersion} is newer than the latest release (${result.latestVersion}); keeping it.`,
+      updated: `Updated Goddard ${result.currentVersion} -> ${result.latestVersion}. Run goddard --version to confirm.`
+    };
+    print(flags.json ? result : messages[result.status]); return;
+  }
   const workspace = path.resolve(flags.workspace);
   if (command === 'accounts' || command === 'login') {
     const { AccountPool, loginProfile, probeProfile, profileEnv } = await import('./accounts.js');
