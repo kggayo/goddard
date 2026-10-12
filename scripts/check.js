@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 const files = [];
 for (const root of ['src', 'bin', 'scripts', 'test']) {
   if (!fs.existsSync(root)) continue;
-  for (const name of fs.readdirSync(root, { recursive: true })) if (name.endsWith('.js')) files.push(`${root}/${name}`);
+  for (const name of fs.readdirSync(root, { recursive: true })) if (/\.m?js$/.test(name)) files.push(`${root}/${name}`);
 }
 for (const file of files) {
   const result = spawnSync(process.execPath, ['--check', file], { stdio: 'inherit', windowsHide: true });

@@ -53,7 +53,7 @@ Uninstalling removes the command and its package. Saved work in each project's `
 
 ## A few common bumps
 
-- **Unsupported Node or SQLite errors:** check `node --version` and install Node.js 24+. Goddard uses Node's built-in SQLite; some Node 24 versions print an experimental warning.
+- **Unsupported Node or SQLite errors:** check `node --version` and install Node.js 24+. Goddard uses Node's built-in SQLite; some Node 24 versions print an experimental warning for database-backed commands. Starting in v0.5.1, version and help commands do not load SQLite and should not print that warning.
 - **PowerShell says `npm.ps1` or `goddard.ps1` cannot run:** use `npm.cmd` and `goddard.cmd`, or open Command Prompt. No execution-policy change is needed.
 - **Command not found after installing:** reopen your terminal and check the npm global bin directory is on `PATH`. `npm prefix --global` shows the prefix; executables live directly there on Windows and in its `bin` subdirectory on macOS/Linux.
 - **Global install permission denied:** use a user-owned Node/npm installation or a Node version manager; see [npm's permissions guide](https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally).

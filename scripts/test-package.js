@@ -15,8 +15,8 @@ try {
   npm(['install', '--global', '--prefix', prefix, '--cache', path.join(temp, 'empty-cache'), '--offline', '--ignore-scripts', '--no-audit', '--no-fund', tarball], { cwd: temp });
   const shim = path.join(prefix, process.platform === 'win32' ? 'goddard.cmd' : 'bin/goddard');
   assert.ok(fs.existsSync(shim), 'npm did not create the command shim.');
-  const cli = args => {
-    const options = { cwd: workspace, env: { ...process.env, NO_COLOR: '1' } };
+  const cli = (args, expectEmptyStderr = false) => {
+    const options = { cwd: workspace, env: { ...process.env, NO_COLOR: '1' }, expectEmptyStderr };
     if (process.platform !== 'win32') return run(shim, args, options);
     // Pass arguments as data rather than interpolating paths or user text into shell code.
     options.env.GODDARD_TEST_SHIM = shim;
@@ -24,10 +24,14 @@ try {
     return run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', '$cliArgs = @(ConvertFrom-Json $env:GODDARD_TEST_ARGS); & $env:GODDARD_TEST_SHIM @cliArgs; exit $LASTEXITCODE'], options);
   };
   const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
-  assert.equal(cli(['--version']), pkg.version);
-  assert.match(cli(['--help']), /durable handoffs between coding agents/);
-  assert.match(cli(['--help']), /--dangerously-skip-permissions/);
-  assert.match(cli(['--help']), /start "goal"/);
+  for (const args of [['--version'], ['-v']]) assert.equal(cli(args, true), pkg.version);
+  for (const args of [['--help'], ['-h'], ['help'], []]) {
+    const help = cli(args, true);
+    assert.match(help, /durable handoffs between coding agents/);
+    assert.match(help, /--dangerously-skip-permissions/);
+    assert.match(help, /start "goal"/);
+  }
+  assert.ok(!fs.existsSync(path.join(workspace, '.goddard')), 'Version/help must not initialize workspace state.');
   cli(['init']);
   fs.writeFileSync(path.join(workspace, 'hello.txt'), 'Packaged installation works.\n');
   const task = JSON.parse(cli(['new', 'Check the installed package', '--json']));

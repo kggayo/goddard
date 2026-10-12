@@ -1,14 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { Store } from './store.js';
 import { atomicWrite, readJSON, version, packageVersion } from './util.js';
 import { checkpointFile, ingestCheckpoint, seedCheckpoint, validateCheckpoint } from './checkpoint.js';
 import { captureWorkspace } from './workspace.js';
 import { exportBundle, importBundle, unpackBundle, writeHandoff } from './handoff.js';
-import { runWithAccounts } from './runner.js';
-import { AccountPool, loginProfile, probeProfile, profileEnv } from './accounts.js';
-import { CodexAdapter } from './adapters/codex.js';
 import { resolvePermissions } from './permissions.js';
 import { usageDecision } from './usage.js';
 
@@ -64,7 +60,7 @@ Same workspace: run TASK --agent claude continues a Codex task, and vice versa.
 Goddard supervises sessions it launches. It does not attach to desktop chats.
 `;
 
-export async function main(argv = process.argv.slice(2), { runTask = runWithAccounts } = {}) {
+export async function main(argv = process.argv.slice(2), { runTask } = {}) {
   const { values: flags, positionals } = parseArgs({ args: argv, allowPositionals: true, options: {
     workspace: { type: 'string', default: process.cwd() }, agent: { type: 'string', default: 'codex' },
     model: { type: 'string' }, file: { type: 'string' }, out: { type: 'string' }, 'goal-file': { type: 'string' },
@@ -85,6 +81,7 @@ export async function main(argv = process.argv.slice(2), { runTask = runWithAcco
   if (!command || flags.help || command === 'help') { console.log(help); return; }
   const workspace = path.resolve(flags.workspace);
   if (command === 'accounts' || command === 'login') {
+    const { AccountPool, loginProfile, probeProfile, profileEnv } = await import('./accounts.js');
     if (!['codex', 'claude'].includes(flags.agent)) throw new Error('--agent must be codex or claude.');
     const pool = new AccountPool();
     try {
@@ -124,6 +121,7 @@ export async function main(argv = process.argv.slice(2), { runTask = runWithAcco
     print(unpackBundle(path.resolve(target), path.resolve(flags.out))); return;
   }
   if (command === 'doctor') {
+    const { CodexAdapter } = await import('./adapters/codex.js');
     const result = { node: process.version, workspace, providers: {} };
     for (const name of ['codex', 'claude']) {
       try { result.providers[name] = version(name); } catch (error) { result.providers[name] = { error: error.message }; }
@@ -147,6 +145,7 @@ export async function main(argv = process.argv.slice(2), { runTask = runWithAcco
   }
   if (!['init', 'new', 'start', 'list', 'run', 'status', 'note', 'checkpoint', 'handoff', 'export', 'import', 'recover'].includes(command)) throw new Error(`Unknown command: ${command}. Use --help.`);
   const options = ['start', 'run'].includes(command) ? runOptions(flags) : null;
+  const { Store } = await import('./store.js');
   const store = new Store(workspace, { create: command === 'init' });
   try {
     if (command === 'init') {
@@ -198,7 +197,8 @@ export async function main(argv = process.argv.slice(2), { runTask = runWithAcco
       if (!flags.out) throw new Error('Specify --out with a new bundle JSON filename.');
       print(await exportBundle(store, task, path.resolve(flags.out))); return;
     }
-    const result = await runTask(store, task, options);
+    const run = runTask ?? (await import('./runner.js')).runWithAccounts;
+    const result = await run(store, task, options);
     process.exitCode = result.status === 'failed' ? 1 : result.status === 'interrupted' ? 130 : result.status === 'limited' ? 75 : 0;
   } finally { store.close(); }
 }

@@ -8,9 +8,10 @@ import { fileURLToPath } from 'node:url';
 export const root = fileURLToPath(new URL('..', import.meta.url));
 export const sha256 = file => createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 
-export function run(binary, args, options = {}) {
+export function run(binary, args, { expectEmptyStderr = false, ...options } = {}) {
   const result = spawnSync(binary, args, { cwd: root, encoding: 'utf8', windowsHide: true, timeout: 120000, ...options });
   if (result.error || result.status !== 0) throw new Error(`${binary} failed: ${result.error?.message ?? result.stderr ?? result.stdout}`);
+  if (expectEmptyStderr) assert.equal(result.stderr, '', `${binary} unexpectedly wrote to stderr.`);
   return result.stdout.trim();
 }
 
