@@ -4,6 +4,7 @@ import readline from 'node:readline';
 const [provider, scenario] = process.argv.slice(2);
 const send = value => process.stdout.write(JSON.stringify(value) + '\n');
 let turns = 0;
+const pendingIds = [];
 function done() {
   send(provider === 'codex' ? { method: 'turn/completed', params: { turn: { id: `turn-${turns}`, status: 'completed' } } } : { type: 'result', is_error: false, result: 'Done' });
 }
@@ -29,7 +30,17 @@ readline.createInterface({ input: process.stdin }).on('line', line => {
   const m = JSON.parse(line);
   if (provider === 'claude') {
     if (m.type === 'control_request') send({ type: 'control_response', response: { subtype: 'success', request_id: m.request_id, response: {} } });
-    if (m.type === 'user') { turns++; fs.appendFileSync('prompts.jsonl', JSON.stringify(m.message.content) + '\n'); ask(); }
+    if (m.type === 'user') {
+      turns++; fs.appendFileSync('prompts.jsonl', JSON.stringify(m.message.content) + '\n');
+      if (scenario === 'coalesced') {
+        pendingIds.push(m.uuid);
+        if (turns === 1) send({ type: 'rate_limit_event', rate_limit_info: { status: 'allowed_warning' } });
+        else {
+          send({ type: 'assistant', message: { content: [{ type: 'text', text: 'Complete. Do you want a PR?' }] } });
+          send({ type: 'result', is_error: false, result: 'Done', user_message_uuid: pendingIds.at(-1), user_message_uuids: pendingIds.splice(0) });
+        }
+      } else ask();
+    }
     if (m.type === 'control_response') receiveAnswer(m.response.request_id, m.response.response);
     return;
   }

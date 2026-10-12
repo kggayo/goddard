@@ -8,7 +8,10 @@ export class Interaction {
     this.queue = Promise.resolve();
     this.closed = false;
     this.reader = readline.createInterface({ input, output, terminal: Boolean(input.isTTY && output.isTTY) });
-    this.reader.on('line', line => this.pending?.(line));
+    this.reader.on('line', line => {
+      if (this.pending) this.pending(line);
+      else if (line.trim()) this.display.status('Input was not sent. Wait for the You prompt to send a follow-up, or answer an active question or approval prompt.');
+    });
     this.reader.on('close', () => { this.closed = true; this.pending?.(null); });
     this.reader.on('SIGINT', () => process.emit('SIGINT'));
   }

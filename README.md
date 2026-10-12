@@ -22,7 +22,7 @@ Now you can wait, or open another agent and explain the whole project again. Whe
 
 **Goddard carries the work in progress to the next session.** It runs Codex or Claude Code, asks for progress checkpoints, saves workspace evidence, and hands the next account or agent a recovery brief. Less retelling. More finishing.
 
-**Early release · v0.5.1.** The core is working; real-world reports and small improvements are very welcome.
+**Early release · v0.5.2.** The core is working; real-world reports and small improvements are very welcome.
 
 ## Take it for a walk
 
@@ -50,7 +50,7 @@ goddard start "Fix the login bug and run the relevant tests" --agent claude --mo
 
 `start` creates and runs a task in one step—no copying a task ID. It prints the ID for later recovery. To continue that task later, use `goddard run TASK_ID --agent codex` (or `claude`); `goddard list` shows saved IDs. Use `new "goal"` when you only want to save a task for later.
 
-Chat, answer questions, and approve requests in Goddard's terminal. After a turn, type a follow-up or `/done` to finish. **Ctrl+C** asks for a checkpoint and stops; a second press stops immediately. Existing provider permissions still apply.
+Chat, answer questions, and approve requests in Goddard's terminal. After a turn, wait for the `You` prompt, then type a follow-up or `/done` to finish. Goddard tells you if text entered outside an active prompt was not sent. **Ctrl+C** asks for a checkpoint and stops; a second press stops immediately. Existing provider permissions still apply.
 
 Want to opt into permission bypass? Add `--dangerously-skip-permissions` to either provider's `start` or `run` command. This selects Claude's `bypassPermissions` mode, or disables Codex's approvals and sandbox. The choice applies to this invocation and its automatic account switches; a new invocation requires the flag again. [Permission options and scope →](docs/usage.md#permission-bypass)
 
