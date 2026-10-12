@@ -4,7 +4,7 @@
 
 Keep a coding task moving when an agent stops. Goddard runs Codex or Claude Code, saves progress and workspace evidence locally, and prepares a handoff that another session can use.
 
-Goddard **0.4.0** is a local command-line supervisor. It uses your installed coding CLIs, selects an available account profile automatically, and makes no direct model API calls of its own. Its terminal renderer uses Marked, highlight.js, and ANSI-aware text layout libraries.
+Goddard **0.5.0** is a local command-line supervisor. It uses your installed coding CLIs, selects an available account profile automatically, and makes no direct model API calls of its own. Its terminal renderer uses Marked, highlight.js, and ANSI-aware text layout libraries.
 
 Every Goddard run uses the managed interface so progress, conversation evidence, tool events, and workspace changes can be captured for handoff. Interact with the agent through Goddard.
 
@@ -26,14 +26,18 @@ In your project's root directory:
 
 ```powershell
 goddard init
-goddard new "Fix the failing login flow and verify it with the relevant tests"
+goddard start "Fix the failing login flow and verify it with the relevant tests" --agent codex --effort high
 ```
 
-Copy the task ID from the result:
+Or choose Claude:
 
 ```powershell
-goddard run TASK_ID --agent codex
+goddard start "Fix the failing login flow and verify it with the relevant tests" --agent claude --model sonnet --effort medium
 ```
+
+`start` combines task creation and execution. It accepts all the same options as `run`, including model, effort, account selection, interaction, and permission bypass. For longer goals, use `goddard start --goal-file goal.txt --agent codex`. Supply either a goal or a goal file. Run `init` once per workspace first.
+
+Each `start` creates a new task, saves its goal, initial checkpoint file, snapshot, and handoff before launching the agent, and prints its ID and a resume command. If login or launch fails, the saved task remains available: use `goddard list` to find it and `goddard run TASK_ID` to retry. Repeating `start` creates another task. Model, effort, account, and permission options are per invocation; specify them again when resuming. To create a task without running an agent, use `goddard new "goal"` as before.
 
 Goddard enables interactive prompts automatically when run in a terminal. After each agent turn, type a follow-up, or press Enter / type `/done` to save and exit. Press **Ctrl+C once** to request a checkpoint and stop; press it again to stop immediately. The first interrupt allows up to 30 seconds for the checkpoint. If the agent is already blocked, Goddard uses its previous checkpoint and recorded evidence.
 
@@ -217,6 +221,8 @@ Checkpoint updates are schema-validated. A partial or malformed write cannot rep
 | `goddard init` | Initialize the current workspace |
 | `goddard new "goal"` | Create a task |
 | `goddard new --goal-file goal.txt` | Read a longer task description |
+| `goddard start "goal" --agent codex` | Create and run a new task in one command |
+| `goddard start --goal-file goal.txt --agent claude` | Create and run a task from a file |
 | `goddard list` | List tasks and last run status |
 | `goddard status TASK_ID` | Inspect a task and its latest checkpoint |
 | `goddard run TASK_ID --agent codex` | Start Codex with the recovery brief |
@@ -315,7 +321,7 @@ node scripts/smoke.js claude
 
 If Claude reports an expired OAuth session, sign in using the Claude CLI and retry. If `doctor --probe` reports a Codex Windows sandbox setup error, repair that sandbox through Codex's supported setup before running file-editing tasks. Goddard does not disable the sandbox to work around setup failures. `GODDARD_CODEX_BIN` and `GODDARD_CLAUDE_BIN` can select an absolute native executable path when it is not on PATH.
 
-## Scope of version 0.4
+## Scope of version 0.5
 
 This version supervises sessions it launches and automatically selects and switches configured account profiles on quota stops. It does not attach to arbitrary desktop chats, restore remote environments, transfer browser state, or provide a dashboard. Switching agents is explicit. Checkpoint requests are best effort; evidence capture continues independently. No additional agent framework or hosted service is required for the supervisor.
 

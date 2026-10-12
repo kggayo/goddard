@@ -27,6 +27,7 @@ try {
   assert.equal(cli(['--version']), pkg.version);
   assert.match(cli(['--help']), /durable handoffs between coding agents/);
   assert.match(cli(['--help']), /--dangerously-skip-permissions/);
+  assert.match(cli(['--help']), /start "goal"/);
   cli(['init']);
   fs.writeFileSync(path.join(workspace, 'hello.txt'), 'Packaged installation works.\n');
   const task = JSON.parse(cli(['new', 'Check the installed package', '--json']));

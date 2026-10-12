@@ -8,7 +8,7 @@ Include the version or commit, operating system, affected provider CLI, a minima
 
 ## Supported versions
 
-Security work targets the latest code on `main` and the current `0.4.x` line. Older versions are not maintained separately. This is an early community project; there is no guaranteed response or fix timeline.
+Security work targets the latest code on `main` and the current `0.5.x` line. Older versions are not maintained separately. This is an early community project; there is no guaranteed response or fix timeline.
 
 ## Expected boundaries
 

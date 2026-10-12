@@ -10,6 +10,7 @@ import { runWithAccounts } from './runner.js';
 import { AccountPool, loginProfile, probeProfile, profileEnv } from './accounts.js';
 import { CodexAdapter } from './adapters/codex.js';
 import { resolvePermissions } from './permissions.js';
+import { usageDecision } from './usage.js';
 
 const help = `Goddard ${packageVersion} — durable handoffs between coding agents
 
@@ -17,6 +18,7 @@ Usage: goddard <command> [arguments] [options]
 
   init                              Initialize a workspace
   new "goal"                        Create a task (or --goal-file PATH)
+  start "goal"                      Create and run a task (or --goal-file PATH)
   list                              List saved tasks
   run TASK --agent codex|claude       Start a fresh session from the handoff
   login NAME --agent codex|claude     Sign in once to an isolated account profile
@@ -54,7 +56,7 @@ Options:
   --dangerously-skip-permissions     Bypass provider approvals; also disables Codex sandbox
   --claude-permission-mode MODE      acceptEdits (default), auto, or bypassPermissions
   --allow-tool RULE                 Claude tool permission rule (repeatable)
-  --json                            Print machine-readable results (except run)
+  --json                            Print machine-readable results (except start/run)
 
 Provider sign-in stays with the installed CLI. Goddard does not copy credentials.
 Automatic selection tries available profiles of the chosen agent; login each account once.
@@ -62,7 +64,7 @@ Same workspace: run TASK --agent claude continues a Codex task, and vice versa.
 Goddard supervises sessions it launches. It does not attach to desktop chats.
 `;
 
-export async function main(argv = process.argv.slice(2)) {
+export async function main(argv = process.argv.slice(2), { runTask = runWithAccounts } = {}) {
   const { values: flags, positionals } = parseArgs({ args: argv, allowPositionals: true, options: {
     workspace: { type: 'string', default: process.cwd() }, agent: { type: 'string', default: 'codex' },
     model: { type: 'string' }, file: { type: 'string' }, out: { type: 'string' }, 'goal-file': { type: 'string' },
@@ -143,7 +145,8 @@ export async function main(argv = process.argv.slice(2)) {
     }
     print(result); return;
   }
-  if (!['init', 'new', 'list', 'run', 'status', 'note', 'checkpoint', 'handoff', 'export', 'import', 'recover'].includes(command)) throw new Error(`Unknown command: ${command}. Use --help.`);
+  if (!['init', 'new', 'start', 'list', 'run', 'status', 'note', 'checkpoint', 'handoff', 'export', 'import', 'recover'].includes(command)) throw new Error(`Unknown command: ${command}. Use --help.`);
+  const options = ['start', 'run'].includes(command) ? runOptions(flags) : null;
   const store = new Store(workspace, { create: command === 'init' });
   try {
     if (command === 'init') {
@@ -152,10 +155,15 @@ export async function main(argv = process.argv.slice(2)) {
       if (!existing.split(/\r?\n/).some(line => ['.goddard/', '/.goddard/'].includes(line))) atomicWrite(ignore, existing + (existing && !existing.endsWith('\n') ? '\n' : '') + '.goddard/\n');
       print(`Initialized Goddard in ${workspace}`); return;
     }
-    if (command === 'new') {
+    let createdTask;
+    if (command === 'new' || command === 'start') {
+      if (command === 'start' && flags['goal-file'] && target !== undefined) throw new Error('Provide a goal or --goal-file, not both.');
+      if (command === 'start' && store.activeRuns().length) throw new Error('Workspace already has an unfinished run. Stop it or use goddard recover after its processes exit.');
       const goal = flags['goal-file'] ? fs.readFileSync(path.resolve(flags['goal-file']), 'utf8') : [target, ...extra].filter(Boolean).join(' ');
-      const task = store.createTask(goal); seedCheckpoint(store, task.id); await captureWorkspace(store, task.id); writeHandoff(store, task.id);
-      print(task); return;
+      createdTask = store.createTask(goal);
+      if (command === 'start') console.log(`Created task ${createdTask.id}.\nTo resume in this workspace: goddard run ${createdTask.id} --agent ${flags.agent}\nAdd your model, effort, and other run options again when resuming.`);
+      seedCheckpoint(store, createdTask.id); await captureWorkspace(store, createdTask.id); writeHandoff(store, createdTask.id);
+      if (command === 'new') { print(createdTask); return; }
     }
     if (command === 'list') { print(store.tasks().map(task => ({ ...task, checkpointStatus: store.latestCheckpoint(task.id)?.data.status ?? 'not_started', lastRun: store.runs(task.id)[0]?.status ?? null }))); return; }
     if (command === 'recover') {
@@ -164,7 +172,7 @@ export async function main(argv = process.argv.slice(2)) {
       print({ recovered: recovered.map(run => run.id) }); return;
     }
     if (command === 'import') { if (!target) throw new Error('Specify a bundle JSON path.'); print(await importBundle(store, path.resolve(target))); return; }
-    const task = target ?? store.tasks()[0]?.id;
+    const task = createdTask?.id ?? target ?? store.tasks()[0]?.id;
     if (!task) throw new Error('Specify a task ID; create one with goddard new "goal".');
     store.task(task);
     if (command === 'status') {
@@ -190,21 +198,26 @@ export async function main(argv = process.argv.slice(2)) {
       if (!flags.out) throw new Error('Specify --out with a new bundle JSON filename.');
       print(await exportBundle(store, task, path.resolve(flags.out))); return;
     }
-    if (!['codex', 'claude'].includes(flags.agent)) throw new Error('--agent must be codex or claude.');
-    const permissions = resolvePermissions({ provider: flags.agent, readOnly: flags['read-only'],
-      bypassPermissions: flags['dangerously-skip-permissions'], claudePermissionMode: flags['claude-permission-mode'] });
-    if (flags.interactive && flags['non-interactive']) throw new Error('Choose either --interactive or --non-interactive.');
-    if (flags.effort && !/^[a-z][a-z0-9_-]{0,49}$/.test(flags.effort)) throw new Error('--effort must be a provider effort level, such as low, medium, or high.');
-    if (flags.agent === 'claude' && flags.effort && !['low', 'medium', 'high', 'xhigh', 'max'].includes(flags.effort)) throw new Error('Claude --effort must be low, medium, high, xhigh, or max (subject to model support).');
-    if (flags.interactive && !(process.stdin.isTTY && process.stdout.isTTY)) throw new Error('--interactive requires a terminal. Use --non-interactive for redirected input.');
-    const numeric = (key, min, max) => { const value = Number(flags[key]); if (!Number.isFinite(value) || value < min || value > max) throw new Error(`--${key} must be between ${min} and ${max}.`); return value; };
-    const options = { provider: flags.agent, account: flags.account, noFailover: flags['no-failover'], model: flags.model, effort: flags.effort, readOnly: flags['read-only'],
-      plain: flags.plain, noColor: flags['no-color'],
-      interactive: !flags['non-interactive'] && Boolean(flags.interactive || (process.stdin.isTTY && process.stdout.isTTY)),
-      ...permissions, allowedTools: flags['allow-tool'],
-      checkpointSeconds: numeric('checkpoint-seconds', 5, 86400), snapshotSeconds: numeric('snapshot-seconds', 1, 3600),
-      graceSeconds: numeric('grace-seconds', 0, 300), maxSeconds: numeric('max-seconds', 0, 604800), warn: numeric('warn', 1, 99), stop: numeric('stop', 2, 100) };
-    const result = await runWithAccounts(store, task, options);
+    const result = await runTask(store, task, options);
     process.exitCode = result.status === 'failed' ? 1 : result.status === 'interrupted' ? 130 : result.status === 'limited' ? 75 : 0;
   } finally { store.close(); }
+}
+
+function runOptions(flags) {
+  if (!['codex', 'claude'].includes(flags.agent)) throw new Error('--agent must be codex or claude.');
+  const permissions = resolvePermissions({ provider: flags.agent, readOnly: flags['read-only'],
+    bypassPermissions: flags['dangerously-skip-permissions'], claudePermissionMode: flags['claude-permission-mode'] });
+  if (flags.interactive && flags['non-interactive']) throw new Error('Choose either --interactive or --non-interactive.');
+  if (flags.effort && !/^[a-z][a-z0-9_-]{0,49}$/.test(flags.effort)) throw new Error('--effort must be a provider effort level, such as low, medium, or high.');
+  if (flags.agent === 'claude' && flags.effort && !['low', 'medium', 'high', 'xhigh', 'max'].includes(flags.effort)) throw new Error('Claude --effort must be low, medium, high, xhigh, or max (subject to model support).');
+  if (flags.interactive && !(process.stdin.isTTY && process.stdout.isTTY)) throw new Error('--interactive requires a terminal. Use --non-interactive for redirected input.');
+  const numeric = (key, min, max) => { const value = Number(flags[key]); if (!Number.isFinite(value) || value < min || value > max) throw new Error(`--${key} must be between ${min} and ${max}.`); return value; };
+  const options = { provider: flags.agent, account: flags.account, noFailover: flags['no-failover'], model: flags.model, effort: flags.effort, readOnly: flags['read-only'],
+    plain: flags.plain, noColor: flags['no-color'],
+    interactive: !flags['non-interactive'] && Boolean(flags.interactive || (process.stdin.isTTY && process.stdout.isTTY)),
+    ...permissions, allowedTools: flags['allow-tool'],
+    checkpointSeconds: numeric('checkpoint-seconds', 5, 86400), snapshotSeconds: numeric('snapshot-seconds', 1, 3600),
+    graceSeconds: numeric('grace-seconds', 0, 300), maxSeconds: numeric('max-seconds', 0, 604800), warn: numeric('warn', 1, 99), stop: numeric('stop', 2, 100) };
+  usageDecision([], options);
+  return options;
 }
