@@ -72,7 +72,7 @@ test('update verifies and installs into the running prefix without a shell, then
     const file = args.find(arg => arg.endsWith('goddard.tgz'));
     assert.deepEqual(fs.readFileSync(file), archive);
     if (args[1] === 'pack') return { status: 0, stdout: JSON.stringify([{ name: 'goddard', version: '0.6.0' }]) };
-    assert.equal(args[args.indexOf('--prefix') + 1], install.prefix);
+    assert.equal(fs.realpathSync(args[args.indexOf('--prefix') + 1]), fs.realpathSync(install.prefix));
     fs.writeFileSync(path.join(install.root, 'package.json'), JSON.stringify({ name: 'goddard', version: '0.6.0' }));
     return { status: 0, stdout: '' };
   } });
@@ -94,7 +94,7 @@ test('source checkouts, development links and local installs are not replaced', 
 
 test('Windows global layout is recognized without using npm.cmd or evaluating shim contents', t => {
   const install = installation(t, 'win32');
-  assert.equal(installedPrefix(install.root, 'win32'), install.prefix);
+  assert.equal(installedPrefix(install.root, 'win32'), fs.realpathSync(install.prefix));
 });
 
 test('invalid release metadata and checksum fail before npm runs', async t => {
