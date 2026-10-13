@@ -148,10 +148,39 @@ export class TerminalDisplay {
     this.output = output;
     this.write = write ?? (text => output.write(text + '\n'));
     this.buffer = [];
+    this.animate = this.renderer.rich && !write;
   }
-  emit(text) { if (this.held) this.buffer.push(text); else this.write(text); }
-  hold() { this.held = true; }
-  release() { this.held = false; for (const text of this.buffer.splice(0)) this.write(text); }
+  emit(text) {
+    if (this.held) this.buffer.push(text);
+    else { this.clearActivity(); this.write(text); this.drawActivity(); }
+  }
+  hold() { this.held = true; this.clearActivity(); }
+  release() { this.held = false; for (const text of this.buffer.splice(0)) this.write(text); this.drawActivity(); }
+  startActivity(label) {
+    if (!this.animate) return;
+    this.activity = terminalText(label).replace(/\s+/g, ' ').trim();
+    this.activityFrame = 0;
+    this.drawActivity();
+    this.activityTimer ??= setInterval(() => this.drawActivity(), 120);
+    this.activityTimer.unref();
+  }
+  drawActivity() {
+    if (!this.activity || this.held) return;
+    const frame = ['|', '/', '-', '\\'][this.activityFrame++ % 4];
+    // Stay on one physical row, leaving the last column free to avoid wrapping.
+    const width = Math.max(1, (this.output.columns || 80) - 1);
+    const text = wrapAnsi(`${frame} ${this.activity}`, width, { hard: true, trim: false }).split('\n')[0];
+    this.output.write(`\r\x1b[2K${this.renderer.paint('muted', text)}`);
+    this.activityVisible = true;
+  }
+  clearActivity() {
+    if (this.activityVisible) this.output.write('\r\x1b[2K');
+    this.activityVisible = false;
+  }
+  stopActivity() {
+    clearInterval(this.activityTimer); this.activityTimer = null;
+    this.activity = null; this.clearActivity();
+  }
   status(text) { this.emit(`${this.renderer.label('Goddard')} ${terminalText(text)}`); }
   agent(provider, text) {
     const name = provider === 'claude' ? 'Claude' : 'Codex';

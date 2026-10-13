@@ -56,7 +56,9 @@ goddard start "Fix the login bug and run the relevant tests" --agent claude --mo
 
 Chat, answer questions, and approve requests in Goddard's terminal. Interaction is automatic when both input and output are terminals; `--interactive` is optional and `--non-interactive` disables prompts. After a turn, wait for the `You` prompt, then type a follow-up, or press Enter / type `/done` to save and exit. Goddard tells you if text entered outside an active prompt was not sent. **Ctrl+C** asks for a checkpoint and stops; a second press stops immediately. Existing provider permissions still apply.
 
-Want to opt into permission bypass? Add `--dangerously-skip-permissions` to either provider's `start` or `run` command. This selects Claude's `bypassPermissions` mode, or disables Codex's approvals and sandbox. The choice applies to this invocation and its automatic account switches; a new invocation requires the flag again. [Permission options and scope →](docs/usage.md#permission-bypass)
+Attach screenshots with `--image PATH` (repeatable on `start` and `run`) or `/image PATH` at the `You` prompt. On Windows, **Alt+V** or `/paste` attaches a clipboard image. These controls work with both Codex and Claude; submitted images survive handoffs. [Image controls and limits →](docs/usage.md#image-attachments)
+
+Use `--permission-mode default|auto|read-only|bypass` with either provider's `start` or `run` command. Goddard translates the chosen mode into the agent's native settings. Explicit `bypass` selects Claude's bypass mode or disables Codex's approvals and sandbox; a new invocation requires the choice again. Existing `--read-only` and `--dangerously-skip-permissions` flags remain aliases. [Permission options and scope →](docs/usage.md#usage-monitoring-and-permissions)
 
 No model account handy? Try the recovery demo from a source checkout:
 
@@ -132,6 +134,7 @@ The meme is a third-party reference, not part of the MIT-licensed code. [Artwork
 | Saved for the next session | Why it helps |
 | --- | --- |
 | Goal and your clarifications | The next agent knows what you asked for |
+| Submitted image attachments | Screenshots and diagrams remain available after a switch |
 | Plan, decisions, completed work, next steps | It can pick up the implementation |
 | Test results and recent tool evidence | It can check what was actually verified |
 | Operations with uncertain results | It knows what to inspect before retrying |

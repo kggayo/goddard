@@ -181,11 +181,34 @@ You (Enter or /done to save and exit): Yes, create a PR.
 
 An approval prompt only answers that permission request. Text entered while there is no active prompt is not sent or queued; Goddard prints a notice so you can send it again at the next prompt. It cannot silently become an answer to a later approval request.
 
+**Multiline replies:** In an interactive terminal, Enter submits the completed draft. Press **Ctrl+J**, or type **`\` then Enter**, to insert a newline. **Shift+Enter** and **Alt+Enter** also insert a newline when your terminal reports them distinctly. If Shift+Enter submits in Windows Terminal, use Ctrl+J; Goddard does not modify terminal keybindings.
+
+Paste multiline text normally, review it, then press Enter to send it as one reply. Goddard recognizes bracketed paste and detects rapid unmarked paste bursts, preserving blank lines and indentation while normalizing Windows CRLF. Pause briefly before Enter after an unmarked paste, because Enter during the burst remains a newline. Cancellation and EOF discard unsubmitted terminal input. These controls also work with `--plain` and `--no-color`; pipes and `TERM=dumb` retain line-oriented input. See [interactive input](wiki/Interactive-chat.md#newlines-and-pasted-text) for the full shortcut table and native CLI references.
+
 **Claude finished, but no `You` prompt appeared?** Update to the latest Goddard release and use a current Claude Code CLI. Version 0.5.2 fixed a case where several checkpoint requests answered in one turn prevented the follow-up prompt. If an older run is stuck, press Ctrl+C once and wait for the handoff to finish. Save your unsent response with [note then run](#resume-a-stopped-task), repeating your chosen run options. On Goddard 0.6.0 or later, `goddard update` installs the latest release; earlier versions need the npm install command under [Get started](#get-started).
 
 When input or output is redirected, Goddard disables interactive prompts. `--non-interactive` explicitly selects that behavior. `--interactive` requires both stdin and stdout to be terminals and cannot be combined with `--non-interactive`. Requests requiring user input are declined or left unanswered, never automatically approved by Goddard. Provider permission rules still apply. Periodic checkpoint prompts pause while waiting for user input; file capture and available quota monitoring continue.
 
+### Image attachments
+
+Both providers use the same image options:
+
+```powershell
+goddard start "Fix this layout" --agent codex --image "screenshots/login.png"
+goddard run TASK_ID --agent claude -i before.png -i after.png
+```
+
+`--image PATH` / `-i PATH` is repeatable on `start` and `run`, including noninteractive runs. Relative image paths resolve from the workspace root. At the `You` prompt, enter `/image "path with spaces.png"`, then type your message at the next prompt and press Enter. On native Windows, **Alt+V** or **`/paste`** attaches a clipboard image; Alt+V preserves the current draft and cursor. Ctrl+V works only when the terminal forwards that key. Other platforms and WSL can attach saved files with `/image`.
+
+Use `/images` to list pending attachments and `/remove-image N` to remove one. Empty Enter sends pending images without text; with no pending images it saves and exits. `/done`, cancellation, and EOF discard unsent attachments. Attach images at the ordinary `You` prompt, not an approval or structured-choice prompt. The terminal shows attachment names and counts.
+
+Supported formats are PNG, JPEG, GIF, and WebP: at most 5 MiB each, 10 distinct images and 20 MiB total per task. Goddard validates signatures and sizes; decoding and model-specific limits remain with the provider. Images are snapshotted under `.goddard/` and sent using each agent's native image protocol. Submitted attachments survive source-file deletion, account failover, and provider switches; every fresh session receives the saved images. Portable bundles include image bytes, and `unpack` places them in an `images/` directory. The 32 MiB bundle content limit includes images and workspace files together.
+
+Image pixels are not redacted. Clipboard access happens only on your paste action. See the [image controls and native protocol references](wiki/Interactive-chat.md#attaching-images).
+
 ### Terminal appearance
+
+A rotating `| / - \` indicator shows when Goddard is checking an account, connecting, or saving a handoff, and when Codex or Claude is working. It clears before printed messages, pauses while you answer a prompt, and stops when the run ends. Animation is disabled for redirected output, `TERM=dumb`, and `--plain`; `--no-color` keeps the indicator without colors. It indicates activity, not a percentage or time estimate.
 
 In a regular terminal, agent replies render as Markdown: styled headings, bold/italic text, lists and checklists, quotes, links, and tables. Fenced code blocks use their language label for syntax highlighting, including JavaScript, TypeScript, Python, JSON, and shell languages supported by highlight.js. Unknown or unlabelled languages stay readable without guessed highlighting. Fenced `diff` or `patch` blocks use green additions, red removals, and distinct headers; the `+` and `-` signs remain visible.
 
@@ -223,6 +246,7 @@ The local `.goddard/` directory contains:
   tasks/<task-id>/
     checkpoint.json            Agent-editable progress record
     HANDOFF.md                  Generated, readable recovery brief
+    images/                     Provider-readable copies of saved image attachments
 ```
 
 `init` adds `.goddard/` to the workspace's `.gitignore`. Do not copy only `state.sqlite` while a run is open: use `export` after it stops. Export includes the most recent snapshot and up to 1,000 recent events; the local database retains all recorded events.
@@ -300,35 +324,44 @@ goddard run TASK_ID --agent codex --warn 70 --stop 80 --checkpoint-seconds 90
 goddard run TASK_ID --agent claude --max-seconds 1800
 ```
 
-By default, Codex runs with its workspace-write sandbox. Interactive runs use `on-request` approval; noninteractive runs use `never`. Goddard never automatically approves an additional permission request. Claude defaults to `acceptEdits`; shell commands requiring additional permission are presented in interactive mode and denied in noninteractive mode. Choose Claude's automatic permission review if supported by your version, or explicitly allow a narrow tool rule:
+Use `--permission-mode MODE` with either agent. Goddard translates this shared option in the selected adapter:
+
+| Mode | Intent | Codex | Claude |
+| --- | --- | --- | --- |
+| `default` (default) | Normal edits with permission checks | `workspace-write`; user review with `on-request` when interactive, `never` otherwise | `acceptEdits` |
+| `auto` | Provider automatically reviews eligible requests | `workspace-write`, `on-request`, `approvalsReviewer: auto_review` | `auto` |
+| `read-only` | Inspect and plan; decline escalations | `read-only`, `never` | `plan` |
+| `bypass` | Explicitly bypass provider approvals | `danger-full-access`, `never` | `bypassPermissions` |
+
+Automatic review requires support from the installed provider and account. Each provider enforces its own restrictions; these modes do not promise identical isolation. Codex retains its sandbox while a reviewer evaluates eligible escalation requests. Claude uses its permission classifier. Goddard never automatically approves requests that reach its interaction handler; these are presented in interactive mode and denied without input. `--non-interactive` controls Goddard's prompts independently of permission mode.
 
 ```powershell
-goddard run TASK_ID --agent claude --claude-permission-mode auto
-goddard run TASK_ID --agent claude --allow-tool "Bash(npm test)"
+goddard run TASK_ID --agent claude --permission-mode auto
+goddard run TASK_ID --agent codex --permission-mode auto
 ```
 
 `--allow-tool` is Claude-only and repeatable, for example `--allow-tool "Read" --allow-tool "Grep"`. Goddard forwards each rule unchanged to Claude; the provider enforces its rule syntax and policy. Allowing a shell command grants access to what it runs, including project-defined scripts. It does not configure Codex permissions.
 
-`--read-only` selects Codex read-only mode or Claude planning mode; an agent in that mode may be unable to write its checkpoint. Read-only runs decline permission escalations. Normal CLI account/API billing and policy still apply.
+`--permission-mode read-only` selects Codex read-only mode or Claude planning mode; an agent in that mode may be unable to write its checkpoint. Read-only runs decline permission escalations. Normal CLI account/API billing and policy still apply.
 
 ### Permission bypass
 
-Starting in **v0.4.0**, explicitly opt into bypass for either managed provider:
+Explicitly opt into bypass for either managed provider:
 
 ```sh
-goddard run TASK_ID --agent claude --model sonnet --effort high --dangerously-skip-permissions
-goddard run TASK_ID --agent codex --effort high --dangerously-skip-permissions
+goddard run TASK_ID --agent claude --model sonnet --effort high --permission-mode bypass
+goddard run TASK_ID --agent codex --effort high --permission-mode bypass
 ```
 
-For Claude, `--claude-permission-mode bypassPermissions` is an equivalent alternative. The mode skips Claude's normal permission prompts. For Codex, Goddard requests `approvalPolicy: never` and `sandbox: danger-full-access`, removing the Codex filesystem and network sandbox as well as approval prompts. Commands can act with your OS user's access. Use this only for work where you intend to grant that access; provider and organization restrictions still apply.
+For Claude, the shared mode selects `bypassPermissions`, skipping normal permission prompts. For Codex, Goddard requests `approvalPolicy: never` and `sandbox: danger-full-access`, removing the Codex filesystem and network sandbox as well as approval prompts. Commands can act with your OS user's access. Use this only for work where you intend to grant that access; provider and organization restrictions still apply.
 
 Goddard displays bypass at startup and records the selected settings in each run's evidence. Checkpointing, snapshots, quota handling, and handoffs continue. Automatic account failover preserves bypass for the current invocation. It is not saved as a global default or re-enabled from a previous handoff: pass the flag again on a new invocation if you want it.
 
 User questions still need answers. Any unexpected provider approval request continues through the normal interactive handler and is declined without interactive input. Bypass does not enable interactive input, repair login failures, add quota, or make Goddard answer every request with yes.
 
-`--read-only` conflicts with either bypass spelling. Combining the shared bypass flag with explicit Claude `auto` or `acceptEdits` also produces an error. `--claude-permission-mode` is only valid with `--agent claude`.
+Compatibility aliases remain available: `--read-only` means `--permission-mode read-only`, and `--dangerously-skip-permissions` means `--permission-mode bypass`. The deprecated `--claude-permission-mode` alias still requires `--agent claude` and maps `acceptEdits`, `auto`, and `bypassPermissions` to shared `default`, `auto`, and `bypass` respectively. Different modes cannot be combined, including explicit `default` with a bypass alias. Equivalent aliases can be combined. Invalid combinations fail before creating a task or starting a provider.
 
-See [Claude permission modes](https://code.claude.com/docs/en/permissions) and [Codex sandbox and approvals](https://learn.chatgpt.com/docs/sandboxing) for the provider-level controls.
+See [Claude permission modes](https://code.claude.com/docs/en/permissions), [Codex sandbox and approvals](https://learn.chatgpt.com/docs/sandboxing), and [Codex automatic review](https://learn.chatgpt.com/docs/sandboxing/auto-review) for the provider-level controls.
 
 ## Recovery and portability
 

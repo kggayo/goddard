@@ -4,6 +4,7 @@ import { usageDecision } from './usage.js';
 import { writeHandoff } from './handoff.js';
 import { TerminalDisplay, terminalText } from './terminal.js';
 import { resolvePermissions } from './permissions.js';
+import { rememberImages } from './images.js';
 
 export async function runWithAccounts(store, task, options = {}) {
   options = { ...options, ...resolvePermissions(options) };
@@ -21,6 +22,7 @@ export async function runWithAccounts(store, task, options = {}) {
     const candidates = pool.list(provider).filter(profile => account === 'auto' || profile.name === account);
     if (!candidates.length) throw new Error(`Unknown ${provider} account profile: ${account}. Use goddard accounts --agent ${provider}.`);
     run = store.startRun(task, provider);
+    rememberImages(store, task, options.images, run.id);
     process.on('SIGINT', onSignal); process.on('SIGTERM', onSignal);
     const seen = new Set();
     for (const profile of candidates) {
@@ -36,7 +38,10 @@ export async function runWithAccounts(store, task, options = {}) {
       log(`Checking ${provider}/${profile.name}…`);
       const env = profileEnv(profile, pool.env);
       safeToRelease = false;
-      const probe = await (options.probe ?? probeProfile)(profile, { workspace: store.workspace, env, signal: abort.signal, onSpawn: pid => store.child(run.id, pid) });
+      display.startActivity(`Goddard: checking ${provider}/${profile.name}...`);
+      let probe;
+      try { probe = await (options.probe ?? probeProfile)(profile, { workspace: store.workspace, env, signal: abort.signal, onSpawn: pid => store.child(run.id, pid) }); }
+      finally { display.stopActivity(); }
       safeToRelease = true;
       if (abort.signal.aborted || Date.now() >= deadline) break;
       if (probe.authenticated === false) {
@@ -76,6 +81,7 @@ export async function runWithAccounts(store, task, options = {}) {
     if (run && !safeToRelease && !error.message.includes('Run remains locked')) throw new Error(`${error.message} Run remains locked because process shutdown could not be confirmed; use goddard recover after its processes exit.`);
     throw error;
   } finally {
+    display.stopActivity();
     process.off('SIGINT', onSignal); process.off('SIGTERM', onSignal);
     if (!options.pool) pool.close();
   }

@@ -69,6 +69,10 @@ The [GitHub wiki](https://github.com/kggayo/goddard/wiki) lives in `docs/wiki/` 
 
 This is a Node.js 24+ project using ES modules, Node's test runner, and built-in SQLite. There is no build step. Prefer the existing small modules and style over adding a framework.
 
+Keep shared run options independent of provider syntax. For example, `src/permissions.js` normalizes `permissionMode` to `default`, `auto`, `read-only`, or `bypass`; each adapter translates that mode to its native arguments or protocol fields. New coding agents should implement this contract instead of adding flags such as `--PROVIDER-permission-mode`. Preserve explicit opt-in, conflict checks, and failover behavior, and document any difference in provider enforcement. Provider-specific compatibility aliases are migration inputs, not the shared contract. Existing native tool-rule overrides remain advanced exceptions until a common rule contract is defined.
+
+Images follow the same boundary: `startTask(text, images)` and `sendPrompt(text, images)` receive validated, saved attachments from `src/images.js`. Adapters translate those attachments to native image inputs. Keep binary data out of event payloads and preserve attachments across account switches and portable handoffs.
+
 The package checks install the release tarball in a temporary prefix with an empty npm cache, then exercise the installed command without provider accounts. CI repeats this on Windows, macOS, and Linux. See [releasing](docs/releasing.md) for the publication workflow.
 
 ## What a good change preserves

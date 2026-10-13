@@ -21,7 +21,7 @@ for (const provider of ['codex', 'claude']) {
     fs.writeFileSync(path.join(dir, 'pending.txt'), 'Keep this work.');
     let id, startOptions;
     const args = ['--agent', provider, '--model', 'test-model', '--effort', 'high', '--account', 'work',
-      '--no-failover', '--plain', '--no-color', '--dangerously-skip-permissions', '--max-seconds', '60'];
+      '--no-failover', '--plain', '--no-color', '--permission-mode', 'bypass', '--max-seconds', '60'];
     await invoke(['start', 'Fix login and run tests', ...args], async (saved, task, options) => {
       id = task; startOptions = options;
       assert.notEqual(task, existing.id);
@@ -31,6 +31,8 @@ for (const provider of ['codex', 'claude']) {
       assert.match(fs.readFileSync(path.join(saved.taskDir(task), 'HANDOFF.md'), 'utf8'), /Fix login and run tests/);
       assert.deepEqual([options.provider, options.model, options.effort, options.account], [provider, 'test-model', 'high', 'work']);
       assert.equal(options.bypassPermissions, true);
+      assert.equal(options.permissionMode, 'bypass');
+      assert.equal(options.claudePermissionMode, undefined);
       assert.equal(options.noFailover, true);
       assert.equal(options.interactive, false);
       assert.equal(options.maxSeconds, 60);
@@ -54,9 +56,27 @@ test('start accepts a goal file and defaults to Codex', async t => {
     assert.equal(store.task(task).goal, 'Fix login.\nThen verify the tests.');
     assert.equal(options.provider, 'codex');
     assert.equal(options.bypassPermissions, false);
+    assert.equal(options.permissionMode, 'default');
     return { status: 'finished' };
   });
 });
+
+for (const provider of ['codex', 'claude']) {
+  for (const permissionMode of ['default', 'auto', 'read-only', 'bypass']) {
+    test(`${provider} start and run accept shared permission mode ${permissionMode}`, async t => {
+      const { task, invoke } = harness(t);
+      for (const command of [['start', 'Check shared permissions'], ['run', task.id]]) {
+        await invoke([...command, '--agent', provider, '--permission-mode', permissionMode], async (store, task, options) => {
+          assert.equal(options.permissionMode, permissionMode);
+          assert.equal(options.readOnly, permissionMode === 'read-only');
+          assert.equal(options.bypassPermissions, permissionMode === 'bypass');
+          assert.equal(options.claudePermissionMode, undefined);
+          return { status: 'finished' };
+        });
+      }
+    });
+  }
+}
 
 test('invalid start input creates no task and never calls a provider', async t => {
   const { store, invoke } = harness(t);
@@ -66,6 +86,25 @@ test('invalid start input creates no task and never calls a provider', async t =
     ['goal', '--snapshot-seconds', '0'], ['goal', '--warn', '90', '--stop', '80']]) {
     await assert.rejects(invoke(['start', ...args], async () => assert.fail('provider must not launch')));
     assert.equal(store.tasks().length, 1);
+  }
+});
+
+test('legacy permission flags reach the runner as shared modes', async t => {
+  const { invoke } = harness(t);
+  for (const [flags, permissionMode] of [
+    [['--read-only'], 'read-only'],
+    [['--dangerously-skip-permissions'], 'bypass'],
+    [['--agent', 'claude', '--claude-permission-mode', 'acceptEdits'], 'default'],
+    [['--agent', 'claude', '--claude-permission-mode', 'auto'], 'auto'],
+    [['--agent', 'claude', '--claude-permission-mode', 'bypassPermissions'], 'bypass']
+  ]) {
+    await invoke(['start', 'Keep existing scripts working', ...flags], async (store, task, options) => {
+      assert.equal(options.permissionMode, permissionMode);
+      assert.equal(options.readOnly, permissionMode === 'read-only');
+      assert.equal(options.bypassPermissions, permissionMode === 'bypass');
+      assert.equal(options.claudePermissionMode, undefined);
+      return { status: 'finished' };
+    });
   }
 });
 

@@ -1,8 +1,13 @@
 import { TerminalDisplay } from '../src/terminal.js';
+import { setTimeout as delay } from 'node:timers/promises';
 
 // This is a display-only sample: no provider process, credentials, or model calls.
 const display = new TerminalDisplay({ plain: process.argv.includes('--plain'), noColor: process.argv.includes('--no-color') });
 display.status('Display preview · no model calls');
+if (display.animate) {
+  display.startActivity('Codex is working...');
+  try { await delay(1200); } finally { display.stopActivity(); }
+}
 display.agent('codex', [
   '## Login callback updated',
   '',

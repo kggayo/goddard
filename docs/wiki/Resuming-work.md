@@ -35,7 +35,7 @@ goddard run TASK_ID --agent codex --effort high
 Model, effort, account, and permission options are per invocation. Include them again if you want the same settings. In particular, bypass is never restored automatically from a previous handoff:
 
 ```sh
-goddard run TASK_ID --agent claude --model sonnet --effort high --dangerously-skip-permissions
+goddard run TASK_ID --agent claude --model sonnet --effort high --permission-mode bypass
 ```
 
 That last example grants broad tool access; read [Permissions and bypass](https://github.com/kggayo/goddard/wiki/Permissions-and-bypass) before using it.
