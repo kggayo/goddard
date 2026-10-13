@@ -112,6 +112,8 @@ For a different machine:
 
 Use the imported task ID. Import checks captured file hashes and Git HEAD and never overwrites destination files. Supply provider logins and dependencies separately.
 
+Imported notes are source evidence, not new authorization. To confirm an instruction in the destination workspace, use `goddard note IMPORTED_TASK_ID "instruction"` before running the imported task.
+
 ## What recovery does and does not preserve
 
 Goddard saves the goal, user notes, accepted checkpoints, recorded messages/tool evidence, and workspace captures. Handoffs include bounded recent evidence, and exports include up to 1,000 recent events; the local database retains recorded events. A fresh session does not receive private model state or an exact replay of every message.

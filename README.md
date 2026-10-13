@@ -28,7 +28,7 @@ Now you can wait, or open another agent and explain the whole project again. Whe
 
 ## Take it for a walk
 
-You'll need **Node.js 24+**, **Git**, and either [Codex CLI](https://learn.chatgpt.com/docs/cli) or [Claude Code](https://code.claude.com/docs/en/quickstart) installed. If you're already signed in, Goddard can reuse that login.
+You'll need **Node.js 24+**, **Git** for Git workspaces, and either [Codex CLI](https://learn.chatgpt.com/docs/cli) or [Claude Code](https://code.claude.com/docs/en/quickstart) installed. If you're already signed in, Goddard can reuse that login. Projects without Git use bounded file snapshots.
 
 ```sh
 npm install --global https://github.com/kggayo/goddard/releases/latest/download/goddard.tgz
@@ -52,9 +52,9 @@ goddard start "Fix the login bug and run the relevant tests" --agent codex --eff
 goddard start "Fix the login bug and run the relevant tests" --agent claude --model sonnet --effort medium
 ```
 
-`start` creates and runs a task in one step—no copying a task ID. It prints the ID for later recovery. To continue that task later, use `goddard run TASK_ID --agent codex` (or `claude`); `goddard list` shows saved IDs. Use `new "goal"` when you only want to save a task for later.
+`start` creates and runs a new task in one step—no copying a task ID. It prints the ID for later recovery. Use `run` to continue an existing task; `goddard list` shows saved IDs. Use `new "goal"` when you only want to save a task for later. The default agent is Codex if you omit `--agent`.
 
-Chat, answer questions, and approve requests in Goddard's terminal. After a turn, wait for the `You` prompt, then type a follow-up or `/done` to finish. Goddard tells you if text entered outside an active prompt was not sent. **Ctrl+C** asks for a checkpoint and stops; a second press stops immediately. Existing provider permissions still apply.
+Chat, answer questions, and approve requests in Goddard's terminal. Interaction is automatic when both input and output are terminals; `--interactive` is optional and `--non-interactive` disables prompts. After a turn, wait for the `You` prompt, then type a follow-up, or press Enter / type `/done` to save and exit. Goddard tells you if text entered outside an active prompt was not sent. **Ctrl+C** asks for a checkpoint and stops; a second press stops immediately. Existing provider permissions still apply.
 
 Want to opt into permission bypass? Add `--dangerously-skip-permissions` to either provider's `start` or `run` command. This selects Claude's `bypassPermissions` mode, or disables Codex's approvals and sandbox. The choice applies to this invocation and its automatic account switches; a new invocation requires the flag again. [Permission options and scope →](docs/usage.md#permission-bypass)
 
@@ -75,6 +75,20 @@ It simulates an interrupted Codex run and a Claude handoff. No login or model qu
 From a source checkout, use `node /absolute/path/to/goddard/bin/goddard.js` instead of `goddard`, or run `npm link` to use your development copy globally. On Windows, use the native Codex/Claude executable; see the [full guide](docs/usage.md#get-started).
 
 </details>
+
+## Pick up where you left off
+
+In the same project's root directory, find the stopped task and add any new instruction before resuming:
+
+```sh
+goddard list
+goddard note TASK_ID "Yes, create a PR after the relevant tests pass."
+goddard run TASK_ID --agent claude --model sonnet --effort high
+```
+
+Replace `TASK_ID` with the saved ID. `note` updates the handoff; `run` launches the next session. Skip `note` when you have no new instruction. Stop the active workspace run before adding a note; during a run, answer at the `You` prompt.
+
+Repeat your chosen agent, model, effort, account, and permission flags on each new invocation. Automatic account switches preserve them within a run, but a later `run` does not restore those options from the previous invocation. [More resume and recovery recipes →](docs/usage.md#resume-a-stopped-task)
 
 ## More accounts, less waiting
 

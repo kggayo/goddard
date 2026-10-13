@@ -8,7 +8,7 @@ goddard doctor
 goddard accounts --agent claude --probe
 ```
 
-For Codex profiles, replace `claude` with `codex`. `goddard doctor --probe` additionally checks Codex's protocol, quota, and a small read-only sandbox command without starting a model turn.
+For Codex profiles, replace `claude` with `codex`. `goddard doctor --probe` checks the current Codex configuration's protocol, quota, and a small read-only sandbox command without starting a model turn. It does not select a named Goddard account; use `accounts --agent codex --probe` to inspect those profiles.
 
 ## I cannot answer the agent
 
@@ -23,8 +23,8 @@ goddard run TASK_ID --agent claude --interactive
 If an older release never shows a follow-up prompt after checkpoint messages, update Goddard. Version 0.5.2 fixed a case where multiple checkpoint requests prevented the follow-up prompt. Existing instructions can be saved after stopping the run:
 
 ```sh
-goddard note TASK_ID "Yes, create a PR after the tests pass."
-goddard run TASK_ID --agent claude --model sonnet --effort medium
+goddard note TASK_ID "Yes, create a PR after the relevant tests pass."
+goddard run TASK_ID --agent claude --model sonnet --effort high
 ```
 
 Keep your chosen model, effort, and permission flags on the resumed invocation. [More on interaction](https://github.com/kggayo/goddard/wiki/Interactive-chat).
@@ -40,7 +40,9 @@ goddard login main --agent claude
 goddard run TASK_ID --agent claude --account main --model sonnet --effort medium
 ```
 
-Replace `main` with the profile printed in `Using claude/…`. The explicit account keeps this retry on the profile you repaired. Omit `--account` later if you want automatic selection again.
+`main` is an example registered profile. For another registered profile, use its name from `Using claude/…`. The explicit account keeps this retry on the profile you repaired. Omit `--account` later if you want automatic selection again.
+
+If the affected profile is `current`, run `claude auth login` in the same `CLAUDE_CONFIG_DIR` environment. For a discovered directory, first register that directory with `goddard accounts add repair --agent claude --path PATH`, replacing `PATH` with its configuration directory, then run `goddard login repair --agent claude`. Reserved names such as `current` and `discovered-*` cannot be used with `goddard login`.
 
 Your Goddard task remains available; use its existing ID. `--interactive`, permission bypass, and `accounts reset` do not repair OAuth token-refresh locks. Do not delete credential files or locks while a provider process may be using them.
 

@@ -32,7 +32,7 @@ Every `start` makes a new task. For an existing one, use `run`. [Start a task](h
 | `goddard accounts remove NAME --agent claude` | Remove its registration, keeping its files and login. |
 | `goddard accounts reset NAME --agent claude` | Clear Goddard's cached quota cooldown; does not reset provider quota. |
 | `goddard doctor` | Show Node version, workspace, and provider CLI availability. |
-| `goddard doctor --probe` | Also test Codex protocol, quota, and a small read-only sandbox command. |
+| `goddard doctor --probe` | Also test the current Codex configuration's protocol, quota, and a small read-only sandbox command; does not select a named Goddard account. |
 
 Account commands act on the selected provider. [Account setup and selection](https://github.com/kggayo/goddard/wiki/Accounts-and-models).
 

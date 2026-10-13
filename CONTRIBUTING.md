@@ -51,7 +51,7 @@ GitHub may wait for a maintainer to approve your first workflow run. That's norm
 
 For documentation-only changes, check the commands and links you touched. You don't need to buy subscriptions or consume model quota to contribute.
 
-The [GitHub wiki](https://github.com/kggayo/goddard/wiki) lives in `docs/wiki/` here, so anyone can suggest a correction through a normal pull request. Edit the matching page and include any navigation changes in `_Sidebar.md`. Maintainers publish reviewed pages using the [wiki publishing guide](docs/wiki-maintenance.md).
+The [GitHub wiki](https://github.com/kggayo/goddard/wiki) lives in `docs/wiki/` here, so anyone can suggest a correction through a normal pull request. Edit the matching page and include any navigation changes in `_Sidebar.md`. When changing user-facing behavior, check the matching README, usage, installation, and wiki examples together using the [documentation consistency checklist](docs/wiki-maintenance.md#keep-the-guides-consistent). Maintainers publish reviewed pages using that guide.
 
 ## Find your way around
 

@@ -9,6 +9,9 @@ Goddard's job is simple: keep a coding task understandable and recoverable when 
 - [x] Interactive questions, approvals, follow-ups, model and effort selection.
 - [x] Automatic account-profile discovery, selection, and quota failover.
 - [x] Explicit permission bypass for managed Claude and Codex runs.
+- [x] Create and run a task in one command with `goddard start`.
+- [x] Installable release packages and `goddard update` / `update --check`.
+- [x] A [public wiki](https://github.com/kggayo/goddard/wiki) with command, permission, and recovery recipes.
 - [x] Recovery tests with simulated crashes and quota exhaustion.
 
 ## Make the everyday path smoother

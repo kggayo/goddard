@@ -1,6 +1,6 @@
 # Goddard: the full usage guide
 
-[← Back to the project](../README.md)
+[← Back to the project](../README.md) · [Browse the wiki](https://github.com/kggayo/goddard/wiki) · [Command and option reference](wiki/Command-reference.md)
 
 Keep a coding task moving when an agent stops. Goddard runs Codex or Claude Code, saves progress and workspace evidence locally, and prepares a handoff that another session can use.
 
@@ -10,7 +10,7 @@ Every Goddard run uses the managed interface so progress, conversation evidence,
 
 ## Get started
 
-Requirements: **Node.js 24+**, Git for Git workspaces, and at least one installed coding CLI. Reuse an existing login or sign in through `goddard login` below. On Windows, Goddard launches native `.exe` files directly, without shell command interpolation. Some Node 24 versions print an experimental SQLite warning for database-backed commands; version and help commands do not load SQLite.
+Requirements: **Node.js 24+**, Git for Git workspaces, and at least one installed coding CLI. Reuse an existing login or sign in through `goddard login` below. On Windows, Goddard launches native `.exe` files directly, without shell command interpolation. Some Node 24 versions print an experimental SQLite warning for database-backed commands; version, help, and update commands do not load SQLite.
 
 Install the latest release:
 
@@ -28,41 +28,61 @@ In your project's root directory:
 
 ```powershell
 goddard init
-goddard start "Fix the failing login flow and verify it with the relevant tests" --agent codex --effort high
+goddard start "Fix the login bug and run the relevant tests" --agent codex --effort high
 ```
 
 Or choose Claude:
 
 ```powershell
-goddard start "Fix the failing login flow and verify it with the relevant tests" --agent claude --model sonnet --effort medium
+goddard start "Fix the login bug and run the relevant tests" --agent claude --model sonnet --effort medium
 ```
 
-`start` combines task creation and execution. It accepts all the same options as `run`, including model, effort, account selection, interaction, and permission bypass. For longer goals, use `goddard start --goal-file goal.txt --agent codex`. Supply either a goal or a goal file. Run `init` once per workspace first.
+`start` combines task creation and execution. It accepts all the same options as `run`, including model, effort, account selection, interaction, and permission bypass. The default agent is Codex if `--agent` is omitted. For longer goals, use `goddard start --goal-file goal.txt --agent codex`. Supply either a goal or a goal file. Run `init` once per workspace first.
 
 Each `start` creates a new task, saves its goal, initial checkpoint file, snapshot, and handoff before launching the agent, and prints its ID and a resume command. If login or launch fails, the saved task remains available: use `goddard list` to find it and `goddard run TASK_ID` to retry. Repeating `start` creates another task. Model, effort, account, and permission options are per invocation; specify them again when resuming. To create a task without running an agent, use `goddard new "goal"` as before.
 
-Goddard enables interactive prompts automatically when run in a terminal. After each agent turn, type a follow-up, or press Enter / type `/done` to save and exit. Press **Ctrl+C once** to request a checkpoint and stop; press it again to stop immediately. The first interrupt allows up to 30 seconds for the checkpoint. If the agent is already blocked, Goddard uses its previous checkpoint and recorded evidence.
+Goddard enables interactive prompts automatically when both input and output are terminals. Wait for the `You` prompt to type a follow-up, or press Enter / type `/done` to save and exit. Press **Ctrl+C once** to request a checkpoint and stop; press it again to stop immediately. The default grace period is 30 seconds; `--grace-seconds` changes it. If no final checkpoint arrives, Goddard uses its previous accepted checkpoint and recorded evidence.
 
 Continue in a fresh session:
 
 ```powershell
-goddard run TASK_ID --agent claude
+goddard run TASK_ID --agent claude --model sonnet --effort medium
 ```
 
 The destination receives the original goal, user updates, accepted checkpoint, outstanding operations, recent evidence, and the same workspace files. When an account hits the quota threshold or reports a quota rejection, Goddard automatically tries another profile of the chosen provider. Credentials are not part of the handoff.
 
-All workspace commands accept `--workspace PATH`. Use the Git repository root, not a subdirectory. Projects without Git are supported with bounded file snapshots.
+All workspace commands accept `--workspace PATH`. Use the Git repository root, not a subdirectory. Projects without Git are supported with bounded file snapshots. Other relative file arguments, including `--goal-file`, `--file`, and `--out`, resolve from the shell's current directory; use absolute paths when combining them with `--workspace`.
+
+## Resume a stopped task
+
+Run these from the same project root. Replace `TASK_ID` with the ID from `start` or `list`:
+
+```sh
+goddard list
+goddard status TASK_ID
+goddard note TASK_ID "Yes, create a PR after the relevant tests pass."
+goddard run TASK_ID --agent claude --model sonnet --effort high
+```
+
+`note` saves your instruction and refreshes the handoff; it does not launch an agent. Skip it when you have no new instructions. Stop any active run in the workspace before adding a note. During an interactive run, use the `You` prompt instead.
+
+`run` starts a fresh provider session with the existing task's handoff and workspace. Use the same task ID after an interruption or login failure; another `start` would create another task. Repeat your chosen agent, model, effort, account, and permission flags on each invocation. In particular, bypass is never restored from the handoff.
+
+To switch providers explicitly, use `goddard run TASK_ID --agent codex --effort high` or the Claude command above. Pin a profile with `--account NAME`, which disables automatic failover. A normally stopped run needs no `recover`; use [recovery](#recovery-and-portability) after a crash only once the original processes have exited. The [wiki resume guide](https://github.com/kggayo/goddard/wiki/Resuming-work) also covers exporting work to another machine.
 
 ## Login, model, and effort
 
 **Do I need to log in first?** Each account needs a one-time sign-in through its provider. An existing CLI login works without extra setup. Goddard also provides a login helper that launches the provider's normal sign-in flow in an isolated profile. You only need both CLIs authenticated if you intend to use both providers. Goddard has no separate account or subscription.
 
 ```powershell
-codex login
-claude auth login
+goddard login main --agent codex
+# Or:
+goddard login main --agent claude
 ```
 
-Run the appropriate command for your provider. `goddard doctor` checks installed executables; it does not prove that authentication or model access works. `doctor --probe` additionally checks Codex's protocol, account quota, and sandbox without starting a model turn.
+Run the appropriate command for your provider. To sign in to the current CLI configuration instead of a named Goddard profile, use `codex login` or `claude auth login` in that configuration's environment. Those native commands do not automatically repair a separate named profile.
+
+Profile names such as `main` or `work` start with a lowercase letter and contain 1–50 lowercase letters, digits, hyphens, or underscores. `auto`, `current`, `default`, `discovered-*`, and Windows device names are reserved. `goddard doctor` checks installed executables; it does not prove that authentication or model access works. `doctor --probe` additionally checks Codex's protocol, account quota, and sandbox without starting a model turn.
 
 **How do I choose a model and effort?** Set them per run:
 
@@ -104,7 +124,7 @@ goddard accounts --agent codex
 goddard accounts --agent claude --probe
 ```
 
-`accounts --probe` checks login status and any available quota without starting a model turn. Codex exposes quota through App Server. Claude's login-status command does not expose subscription quota; Goddard learns from rate-limit events during supervised runs. Unknown quota stays unknown and does not prevent trying a profile. Probes that cannot determine authentication report that uncertainty rather than claiming a successful login. See the [Codex account endpoints](https://learn.chatgpt.com/docs/app-server) and [Claude authentication commands](https://code.claude.com/docs/en/cli-reference).
+`accounts --probe` checks login status and any available quota without starting a model turn. Codex exposes quota through App Server. Claude's login-status command does not expose subscription quota; Goddard learns from rate-limit events during supervised runs. Unknown quota stays unknown and does not prevent trying a profile. Probes that cannot determine authentication report that uncertainty rather than claiming a successful login. A successful login-status check does not guarantee a later OAuth refresh or model call will succeed. See the [Codex account endpoints](https://learn.chatgpt.com/docs/app-server) and [Claude authentication commands](https://code.claude.com/docs/en/cli-reference).
 
 On a quota stop, Goddard requests a final checkpoint when possible, waits for the old process to exit, saves the checkpoint and workspace evidence, and launches a **fresh provider session** on the next account with the handoff. It holds workspace ownership across the transition. It attempts each configuration directory at most once per invocation. Each distinct directory is treated as a profile; signing the same account into two directories does not create additional quota.
 
@@ -130,7 +150,9 @@ goddard accounts reset current --agent claude
 goddard accounts remove work --agent claude
 ```
 
-An unregistered directory matching the discovery pattern can still appear as a discovered profile. `login NAME` reuses an existing registration's directory; for a new name it creates `~/.goddard/profiles/<provider>/<name>`. Profile registrations and quota cooldowns live in `~/.goddard/accounts.sqlite`. Set `GODDARD_HOME` to change this global location; keep it outside the project. The workspace's own `.goddard/` remains the task and handoff store.
+`accounts reset` only clears Goddard's cached quota cooldown. It does not reset provider quota, sign you in, or remove an OAuth refresh lock. `accounts remove` leaves the profile's files and login in place; an unregistered directory matching the discovery pattern can still appear as a discovered profile.
+
+`login NAME` reuses an existing registration's directory; for a new name it creates `~/.goddard/profiles/<provider>/<name>`. Profile registrations and quota cooldowns live in `~/.goddard/accounts.sqlite`. Set `GODDARD_HOME` to change this global location; keep it outside the project. The workspace's own `.goddard/` remains the task and handoff store.
 
 The provider CLI owns the login credentials, including those it writes inside Goddard-managed profile directories. New managed Codex profiles use file credential storage under their own `CODEX_HOME`. Existing configurations are not rewritten. Claude uses its normal credential storage for the selected `CLAUDE_CONFIG_DIR`, as described in [Claude's profile configuration](https://code.claude.com/docs/en/env-vars); Codex storage is documented in [Codex authentication](https://learn.chatgpt.com/docs/auth). Goddard does not copy credential files between profiles or into handoffs. Native session histories, user-level plugins, and settings stay with their profile; configure them separately if needed.
 
@@ -140,11 +162,11 @@ The `current` profile preserves inherited API-key and external-provider setups. 
 
 ## Interact with your agent
 
-**Will questions and confirmations appear in Goddard?** Yes, when interactive prompts are enabled:
+**Will questions and confirmations appear in Goddard?** Yes. Interaction is automatic when both input and output are terminals; you do not need `--interactive` for a normal terminal run:
 
 ```powershell
-goddard run TASK_ID --agent codex --effort high --interactive
-goddard run TASK_ID --agent claude --interactive
+goddard run TASK_ID --agent codex --effort high
+goddard run TASK_ID --agent claude --model sonnet --effort medium
 ```
 
 Goddard prints agent messages, presents structured questions with numbered options or free-text answers, and shows permission requests with their command, tool input, or requested scope. Type `y` or `yes` to approve; Enter or any other response declines. Goddard does not save permanent approval rules. Additional Codex permission grants are limited to the displayed turn scope. Claude's existing permission mode and allow rules may permit actions without a new prompt.
@@ -159,9 +181,9 @@ You (Enter or /done to save and exit): Yes, create a PR.
 
 An approval prompt only answers that permission request. Text entered while there is no active prompt is not sent or queued; Goddard prints a notice so you can send it again at the next prompt. It cannot silently become an answer to a later approval request.
 
-**Claude finished, but no `You` prompt appeared?** Update Goddard to 0.5.2 or later and use a current Claude Code CLI. Earlier Goddard versions could keep waiting when Claude answered several checkpoint requests in a single turn. Goddard now matches results to their supplied message IDs, including merged requests. If an older run is stuck, press Ctrl+C once and wait for the handoff to finish. Save any unsent response with `goddard note TASK_ID "Yes, create a PR."`, then resume with `goddard run TASK_ID --agent claude --interactive`, adding your chosen model and effort again. The saved note is included in the handoff.
+**Claude finished, but no `You` prompt appeared?** Update to the latest Goddard release and use a current Claude Code CLI. Version 0.5.2 fixed a case where several checkpoint requests answered in one turn prevented the follow-up prompt. If an older run is stuck, press Ctrl+C once and wait for the handoff to finish. Save your unsent response with [note then run](#resume-a-stopped-task), repeating your chosen run options. On Goddard 0.6.0 or later, `goddard update` installs the latest release; earlier versions need the npm install command under [Get started](#get-started).
 
-When input/output is redirected, Goddard disables interactive prompts. `--non-interactive` explicitly selects that behavior, and `--interactive` requires a terminal. Requests requiring user input are declined or left unanswered, never automatically approved by Goddard. Provider permission rules still apply. Periodic checkpoint prompts pause while waiting for user input; file capture and available quota monitoring continue.
+When input or output is redirected, Goddard disables interactive prompts. `--non-interactive` explicitly selects that behavior. `--interactive` requires both stdin and stdout to be terminals and cannot be combined with `--non-interactive`. Requests requiring user input are declined or left unanswered, never automatically approved by Goddard. Provider permission rules still apply. Periodic checkpoint prompts pause while waiting for user input; file capture and available quota monitoring continue.
 
 ### Terminal appearance
 
@@ -171,7 +193,7 @@ Codex, Claude, Goddard status messages, and your input have distinct labels. App
 
 ```powershell
 # Styling is automatic in a terminal.
-goddard run TASK_ID --agent codex --interactive
+goddard run TASK_ID --agent codex
 
 # Keep formatted Markdown, but disable colors and text styles.
 goddard run TASK_ID --agent claude --no-color
@@ -179,11 +201,11 @@ goddard run TASK_ID --agent claude --no-color
 # Show the original Markdown as plain text.
 goddard run TASK_ID --agent codex --plain
 
-# Preview replies, code, a diff, and an approval without using model quota.
+# From a Goddard source checkout after npm ci, preview without model quota.
 npm run preview
 ```
 
-`NO_COLOR` (when nonempty) and `NODE_DISABLE_COLORS=1` disable color and text styles. Redirected output and `TERM=dumb` use plain text automatically. Font family and size come from your terminal settings. Goddard renders completed messages/blocks; this is not character-by-character streaming or a copy of either provider's original interface.
+`NO_COLOR` (when nonempty) and `NODE_DISABLE_COLORS=1` disable color and text styles. Redirected output and `TERM=dumb` use plain text automatically. Font family and size come from your terminal settings. Goddard renders completed messages/blocks; this is not character-by-character streaming or a copy of either provider's original interface. `npm run preview` is a source-checkout script, not a command to run in the project you are asking the agent to edit.
 
 Formatting applies only to display. Event records, checkpoints, and exported handoffs keep their original text and receive no renderer-generated color codes. Provider-supplied terminal controls are stripped before display. Messages too large to format or code with unsupported syntax fall back to readable text so formatting does not prevent a handoff.
 
@@ -228,32 +250,42 @@ Checkpoint updates are schema-validated. A partial or malformed write cannot rep
 
 ## Commands
 
+Replace `TASK_ID`, `NAME`, and `PATH` with your own values. Account examples use Claude; change `--agent claude` to `--agent codex` for Codex profiles. If omitted, `--agent` defaults to Codex.
+
 | Command | Purpose |
 | --- | --- |
+| `goddard --version` | Show the installed version (`-v` also works) |
+| `goddard --help` | Show commands and options (`-h` and `help` also work) |
 | `goddard init` | Initialize the current workspace |
 | `goddard new "goal"` | Create a task |
 | `goddard new --goal-file goal.txt` | Read a longer task description |
 | `goddard start "goal" --agent codex` | Create and run a new task in one command |
 | `goddard start --goal-file goal.txt --agent claude` | Create and run a task from a file |
 | `goddard list` | List tasks and last run status |
-| `goddard status TASK_ID` | Inspect a task and its latest checkpoint |
+| `goddard status TASK_ID` | Inspect a task and its latest checkpoint; omit the ID for the latest task |
 | `goddard run TASK_ID --agent codex` | Start Codex with the recovery brief |
 | `goddard run TASK_ID --agent claude` | Start Claude Code with the recovery brief |
-| `goddard login NAME --agent codex\|claude` | Sign in to a named profile through the provider CLI |
-| `goddard accounts --agent codex\|claude [--probe]` | Discover profiles and optionally check login / quota |
-| `goddard accounts add NAME --agent codex\|claude --path PATH` | Register an existing profile directory |
-| `goddard accounts remove NAME --agent codex\|claude` | Forget a registration without deleting its files |
-| `goddard accounts reset NAME --agent codex\|claude` | Clear cached quota cooldown |
+| `goddard login NAME --agent claude` | Sign in to a named profile through the provider CLI |
+| `goddard accounts --agent claude` | Discover profiles and cached cooldowns; `accounts list` also works |
+| `goddard accounts --agent claude --probe` | Check login and available quota without a model turn |
+| `goddard accounts add NAME --agent claude --path PATH` | Register an existing profile directory |
+| `goddard accounts remove NAME --agent claude` | Forget a registration without deleting its files |
+| `goddard accounts reset NAME --agent claude` | Clear Goddard's cached quota cooldown; does not reset provider quota |
 | `goddard note TASK_ID "instruction"` | Add a user instruction before the next run |
 | `goddard checkpoint TASK_ID --file progress.json` | Import a validated checkpoint while stopped |
 | `goddard handoff TASK_ID` | Capture the stopped workspace and generate its brief |
-| `goddard export TASK_ID --out bundle.json` | Export a bundle while stopped |
-| `goddard unpack bundle.json --out recovery-files` | Extract captured files and patches into a new directory |
-| `goddard import bundle.json` | Import task state into a matching workspace |
+| `goddard export TASK_ID --out .goddard/bundle.json` | Export a stopped task to a new JSON bundle filename |
+| `goddard unpack .goddard/bundle.json --out ../recovery-review` | Extract captured files and patches into a new directory |
+| `goddard import path/to/bundle.json` | Import task state into an initialized, matching workspace; never overwrite files |
 | `goddard recover` | Mark abandoned runs interrupted after their processes exit |
+| `goddard doctor` | Show Node version, workspace, and provider CLI availability |
 | `goddard doctor --probe` | Check executables, Codex protocol, quota, and a read-only sandbox command without a model turn |
+| `goddard update --check` | Check for a newer stable release without installing it |
+| `goddard update` | Update the running global npm installation; available since 0.6.0 |
 
-Use `--json` for structured command output. Run output is a live text stream. Exit codes: `0` for a finished turn or prepared handoff, `1` for failure, `75` for a quota stop, and `130` for interruption.
+Use `--json` for structured command output; `start` and `run` remain live text streams. `--check` is only valid with `update`. Run exit codes: `0` for a finished turn or prepared handoff, `1` for failure, `75` for a quota stop, and `130` for interruption. A successful exit does not prove the task is complete or verified; check the agent's separate checkpoint status and verification evidence.
+
+See the [option reference](wiki/Command-reference.md#start-and-run-options) for all run flags and the [timing and usage table](wiki/Command-reference.md#checkpoint-capture-and-usage-options) for defaults and accepted ranges. The same reference is [published in the wiki](https://github.com/kggayo/goddard/wiki/Command-reference).
 
 ## Usage monitoring and permissions
 
@@ -275,6 +307,8 @@ goddard run TASK_ID --agent claude --claude-permission-mode auto
 goddard run TASK_ID --agent claude --allow-tool "Bash(npm test)"
 ```
 
+`--allow-tool` is Claude-only and repeatable, for example `--allow-tool "Read" --allow-tool "Grep"`. Goddard forwards each rule unchanged to Claude; the provider enforces its rule syntax and policy. Allowing a shell command grants access to what it runs, including project-defined scripts. It does not configure Codex permissions.
+
 `--read-only` selects Codex read-only mode or Claude planning mode; an agent in that mode may be unable to write its checkpoint. Read-only runs decline permission escalations. Normal CLI account/API billing and policy still apply.
 
 ### Permission bypass
@@ -282,7 +316,7 @@ goddard run TASK_ID --agent claude --allow-tool "Bash(npm test)"
 Starting in **v0.4.0**, explicitly opt into bypass for either managed provider:
 
 ```sh
-goddard run TASK_ID --agent claude --model claude-opus-5-5 --effort medium --dangerously-skip-permissions
+goddard run TASK_ID --agent claude --model sonnet --effort high --dangerously-skip-permissions
 goddard run TASK_ID --agent codex --effort high --dangerously-skip-permissions
 ```
 
@@ -290,7 +324,7 @@ For Claude, `--claude-permission-mode bypassPermissions` is an equivalent altern
 
 Goddard displays bypass at startup and records the selected settings in each run's evidence. Checkpointing, snapshots, quota handling, and handoffs continue. Automatic account failover preserves bypass for the current invocation. It is not saved as a global default or re-enabled from a previous handoff: pass the flag again on a new invocation if you want it.
 
-User questions still need answers. Any unexpected provider approval request continues through the normal interactive handler and is declined without interactive input. The option does not make Goddard answer every request with yes.
+User questions still need answers. Any unexpected provider approval request continues through the normal interactive handler and is declined without interactive input. Bypass does not enable interactive input, repair login failures, add quota, or make Goddard answer every request with yes.
 
 `--read-only` conflicts with either bypass spelling. Combining the shared bypass flag with explicit Claude `auto` or `acceptEdits` also produces an error. `--claude-permission-mode` is only valid with `--agent claude`.
 
@@ -310,13 +344,36 @@ Recovery refuses to proceed while a recorded supervisor or child PID is alive. I
 
 For a different machine, export a bundle outside the project or inside `.goddard/`. `unpack` extracts file contents, a manifest, and staged/unstaged Git patches for review. A Git bundle here contains **changes relative to the recorded commit**, not the whole repository: obtain that repository and base commit separately, restore its changes and relevant new files, initialize Goddard there with `init`, and then `import` the original JSON bundle. Import validates captured file hashes and Git HEAD; it never overwrites destination files. Deletions, exclusions, modes, and warnings are listed in the manifest. It does not automatically replay commands or external actions.
 
+Imported notes are retained as source evidence, not new authorization. Use `goddard note IMPORTED_TASK_ID "instruction"` to confirm an instruction in the destination workspace before running it. See the [portable handoff recipe](wiki/Resuming-work.md#inspect-or-export-a-stopped-task) for the full sequence.
+
 Captures preserve both index and worktree patches, including staged and unstaged changes that cancel each other out. Untracked files are captured too. Defaults exclude secrets by filename, generated directories, symlinks, submodules, files larger than 2 MiB, and captures exceeding 32 MiB. These omissions are recorded. A snapshot is **not a complete backup**. Credentials and generated dependencies must be supplied separately on a new machine.
 
 Common credentials are redacted from event records, and reasoning events are omitted. Redaction is best effort: checkpoint text, source files, patches, and tool outputs may contain private project information. Bundles are local, unencrypted artifacts; review them before sharing.
 
 ## Verify the installation
 
+For an installed release, run from any directory:
+
+```sh
+goddard --version
+goddard doctor
+goddard accounts --agent claude --probe
+```
+
+Use `--agent codex` to check Codex profiles. `doctor` reports executable availability, while `accounts --probe` checks the selected provider's profiles. Neither proves that a model call will succeed. `goddard doctor --probe` checks the current Codex configuration's protocol, account quota, and a small read-only sandbox command without a model turn; it does not select a named Goddard account.
+
+On Windows, the provider must have a native executable. `GODDARD_CODEX_BIN` and `GODDARD_CLAUDE_BIN` can select an existing absolute executable path when it is not on PATH; `.cmd`, `.bat`, and `.ps1` wrappers are not supported as provider overrides. This is separate from Goddard's own npm launcher, for which `goddard.cmd` is valid.
+
+If `doctor --probe` reports a Codex Windows sandbox setup error, repair that sandbox through Codex's supported setup before running file-editing tasks. Goddard does not automatically disable the sandbox to work around setup failures.
+
+### Developer checks from a source checkout
+
+The release package does not include the development scripts or tests. To run them, clone Goddard and install its development dependencies, then run these in that checkout:
+
 ```powershell
+git clone https://github.com/kggayo/goddard.git
+cd goddard
+npm ci
 npm test
 npm run check
 npm run demo
@@ -324,16 +381,27 @@ npm run demo
 
 The offline demo launches simulated provider processes through the real adapters. It deliberately crashes the Codex source after corrupting its last checkpoint write, then resumes through the Claude adapter and verifies the saved next step and workspace files. Tests also exercise account discovery, environment isolation, preflight selection, quota failover for both providers, preserved instructions/files/uncertain operations, interactive approvals after switching, cooldowns, pinned profiles, interruption, and workspace ownership during handoff. The existing rendering, recovery, and interaction checks remain in the suite. These checks use no model quota. Demo output is retained under `.tmp/demo-*` for inspection. Automated account-switch tests use simulated logins; they do not prove live access for a particular subscription or model.
 
-Explicit live smoke tests use the CLI's existing authentication and quota, and work only in a new `.tmp/live-*` directory:
+Explicit live smoke tests also run from the Goddard checkout. They use the CLI's current authentication environment and quota, and work only in a new `.tmp/live-*` directory:
 
 ```powershell
 node scripts/smoke.js codex
 node scripts/smoke.js claude
 ```
 
-If Claude reports an expired OAuth session, sign in using the Claude CLI and retry. If `doctor --probe` reports a Codex Windows sandbox setup error, repair that sandbox through Codex's supported setup before running file-editing tasks. Goddard does not disable the sandbox to work around setup failures. `GODDARD_CODEX_BIN` and `GODDARD_CLAUDE_BIN` can select an absolute native executable path when it is not on PATH.
+## Troubleshooting
 
-## Scope of version 0.5
+For an OAuth refresh conflict in a named Claude profile, retry after a minute. If it persists, close other Claude Code sessions using that profile and sign in to the affected profile again:
+
+```sh
+goddard login main --agent claude
+goddard run TASK_ID --agent claude --account main --model sonnet --effort medium
+```
+
+Here `main` is an example registered profile. Use the affected registered name shown by `accounts`; for `current`, use `claude auth login` in the same `CLAUDE_CONFIG_DIR` environment. For a discovered directory, register it under a normal name with `accounts add` before using `login NAME`. Don't pass reserved names such as `current` to `goddard login`.
+
+The saved task can be resumed with the same ID after login is repaired. Pinning `--account main` keeps the retry on that profile; omit `--account` to re-enable automatic selection later. Permission bypass, `--interactive`, and `accounts reset` do not fix token-refresh locks. See [Claude's refresh-error guidance](https://code.claude.com/docs/en/errors#could-not-refresh-your-login) and the [wiki troubleshooting page](https://github.com/kggayo/goddard/wiki/Troubleshooting) for missing prompts, grace-period expiry, SQLite warnings, and update problems.
+
+## Current scope
 
 This version supervises sessions it launches and automatically selects and switches configured account profiles on quota stops. It does not attach to arbitrary desktop chats, restore remote environments, transfer browser state, or provide a dashboard. Switching agents is explicit. Checkpoint requests are best effort; evidence capture continues independently. No additional agent framework or hosted service is required for the supervisor.
 
