@@ -30,7 +30,7 @@ The initial repository helper does not publish release packages. The [release wo
 
 ## Repository defaults
 
-- **Public**, with Issues and Discussions enabled. Wiki and Projects are disabled to keep documentation and the roadmap in the repository.
+- **Public**, with Issues, Discussions, and Wiki enabled. Projects is disabled; the roadmap stays in the repository. Wiki pages are reviewed in `docs/wiki/` and [published by maintainers](wiki-maintenance.md).
 - **Squash merges**, deleting merged branches automatically.
 - **Protected `main`**: pull requests, the three platform checks, up-to-date branches, and resolved conversations. Force pushes and branch deletion are disabled; protection also applies to the owner.
 - **Zero mandatory approval count while there is one maintainer.** Only users with write access can merge, so outside contributors cannot merge their own work. Requiring an additional approving reviewer would strand the sole maintainer's own PRs. Add a one-review requirement when a second maintainer joins.

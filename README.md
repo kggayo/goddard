@@ -24,6 +24,8 @@ Now you can wait, or open another agent and explain the whole project again. Whe
 
 **Early release · v0.6.0.** The core is working; real-world reports and small improvements are very welcome.
 
+[Read the wiki](https://github.com/kggayo/goddard/wiki) · [Command reference](https://github.com/kggayo/goddard/wiki/Command-reference) · [Resume unfinished work](https://github.com/kggayo/goddard/wiki/Resuming-work)
+
 ## Take it for a walk
 
 You'll need **Node.js 24+**, **Git**, and either [Codex CLI](https://learn.chatgpt.com/docs/cli) or [Claude Code](https://code.claude.com/docs/en/quickstart) installed. If you're already signed in, Goddard can reuse that login.
@@ -150,6 +152,7 @@ The usual path is **fork → branch → small change → pull request**. Anyone 
 
 ## The handy drawer
 
+- [Goddard wiki](https://github.com/kggayo/goddard/wiki): quick start, command cookbook, permission options, and resuming unfinished work.
 - [Full usage guide](docs/usage.md): login, models, effort, interaction, profiles, recovery, and all commands.
 - [Installation guide](docs/installing.md): packages, updates, and troubleshooting.
 - [Roadmap](ROADMAP.md): current scope and future adapters.
