@@ -15,21 +15,45 @@ import { exportBundle } from '../src/handoff.js';
 
 const fixture = fileURLToPath(new URL('./fixtures/interactive-provider.js', import.meta.url));
 const lines = file => fs.readFileSync(file, 'utf8').trim().split('\n').map(line => JSON.parse(line));
-function terminal(t, responses, rich = false) {
+function terminal(t, responses, rich = false, raw = false) {
   const input = new PassThrough(), output = new PassThrough(); let transcript = '';
+  if (raw) {
+    const previousTerm = process.env.TERM; process.env.TERM = 'xterm-256color';
+    t.after(() => { if (previousTerm === undefined) delete process.env.TERM; else process.env.TERM = previousTerm; });
+    input.isTTY = true; input.setRawMode = () => {};
+  }
   output.isTTY = rich; output.columns = 72;
   const display = new TerminalDisplay({ output, env: {} });
   const ui = new Interaction({ input, output, display }); t.after(() => ui.close());
+  const answered = new Set();
   output.on('data', chunk => {
     const text = chunk.toString(); transcript += text;
-    if (/Answer \(|Allow this request|You \(/.test(text)) setImmediate(() => {
-      const value = responses.shift();
-      if (value === undefined) input.end(); else input.write(value + '\n');
-    });
+    if (/Answer \(|Allow this request|You \(/.test(text) && (!raw || (ui.pending && !answered.has(ui.pending)))) {
+      if (raw) answered.add(ui.pending);
+      setImmediate(() => {
+        const value = responses.shift();
+        if (value === undefined) input.end(); else input.write(raw ? '\x1b[200~' + value + '\x1b[201~\r' : value + '\n');
+      });
+    }
   });
   return { ui, input, transcript: () => transcript };
 }
 for (const [provider, Provider] of [['codex', CodexAdapter], ['claude', ClaudeAdapter]]) {
+  test(`${provider} receives multiline pasted answers and follow-ups as single messages`, async t => {
+    const { dir, store, task } = setup(t);
+    const answer = '  Blue, with contrast\n\n  Preserve this indentation.\n';
+    const followup = 'First step\n  second step\n\nlast step\n';
+    const { ui } = terminal(t, [answer, 'no', followup, '/done'], true, true);
+    const source = new Provider({ workspace: dir, binary: process.execPath, args: [fixture, provider, 'interactive'], interactive: true });
+    const result = await supervise(store, task.id, { provider, adapter: source, interaction: ui, maxSeconds: 5, log: () => {} });
+    assert.equal(result.status, 'finished');
+    const replies = lines(path.join(dir, 'answers.jsonl'));
+    assert.equal(provider === 'codex' ? replies[0].value.answers.color.answers[0] : replies[0].value.updatedInput.answers['Which color?'], answer);
+    const prompts = lines(path.join(dir, 'prompts.jsonl'));
+    assert.equal(prompts.length, 2);
+    assert.equal(provider === 'codex' ? prompts[1].input[0].text : prompts[1], followup);
+    assert.ok(store.notes(task.id).some(note => note.text === followup));
+  });
   test(`${provider} relays questions, one-request approvals, and follow-ups through the real stream adapter`, async t => {
     const { dir, store, task } = setup(t);
     const { ui, transcript } = terminal(t, ['2', 'yes', 'Use the accessible variant.', '/done'], true);

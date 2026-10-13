@@ -7,6 +7,7 @@ import { usageDecision } from './usage.js';
 import { Interaction } from './interaction.js';
 import { TerminalDisplay, terminalText } from './terminal.js';
 import { resolvePermissions } from './permissions.js';
+import { imageMetadata, loadImages, rememberImages } from './images.js';
 
 export async function supervise(store, task, options = {}) {
   options = { ...options, ...resolvePermissions(options) };
@@ -17,7 +18,9 @@ export async function supervise(store, task, options = {}) {
   const run = options.run ?? store.startRun(task, provider);
   const display = options.display ?? options.interaction?.display ?? new TerminalDisplay({ output: options.output, write: options.log, plain: options.plain, noColor: options.noColor });
   const log = text => display.status(text);
-  const interaction = options.interaction ?? (options.interactive ? new Interaction({ display, input: options.input }) : null);
+  const agentName = provider === 'claude' ? 'Claude' : 'Codex';
+  const interaction = options.interaction ?? (options.interactive ? new Interaction({ display, input: options.input, workspace: store.workspace,
+    existingImages: () => store.images(task) }) : null);
   const lifetime = new AbortController();
   const interactions = new Set();
   let waiting = 0, betweenTurns = false;
@@ -26,7 +29,7 @@ export async function supervise(store, task, options = {}) {
   const checkpointRequests = new Set();
   let resolveDone;
   const done = new Promise(resolve => { resolveDone = resolve; });
-  const finish = result => { if (outcome) return; outcome = result; lifetime.abort(); interaction?.close(); resolveDone(result); };
+  const finish = result => { if (outcome) return; outcome = result; display.stopActivity(); lifetime.abort(); interaction?.close(); resolveDone(result); };
   const evidence = (type, payload) => {
     store.event(task, run.id, type, payload);
     if (type === 'agent.message') display.agent(provider, payload.text);
@@ -57,6 +60,7 @@ export async function supervise(store, task, options = {}) {
     lifetime.abort(); interaction?.close();
     evidence('run.draining', { reason });
     log(`Preparing handoff: ${reason}`);
+    display.startActivity('Goddard: preparing handoff...');
     drainTimer = setTimeout(() => finish({ status, reason: `${reason}; checkpoint grace period ended` }), graceSeconds * 1000);
     if (betweenTurns) finish({ status, reason });
     else if (ready) await requestCheckpoint(reason, true);
@@ -109,13 +113,18 @@ export async function supervise(store, task, options = {}) {
     betweenTurns = true;
     const pending = (async () => {
       try {
+        display.startActivity('Goddard: saving progress...');
         ingestCheckpoint(store, task); await capture(); writeHandoff(store, task);
+        display.stopActivity();
         const input = await interaction.request({ kind: 'followup', signal: lifetime.signal });
         if (outcome || draining) return;
-        if (!input?.trim() || input.trim() === '/done') { finish(result); return; }
-        evidence('user.note', { text: input });
+        const text = typeof input === 'string' ? input : input?.text ?? '';
+        if (!input || text.trim() === '/done' || (!text.trim() && !input.images?.length)) { finish(result); return; }
+        const images = rememberImages(store, task, input.images ?? [], run.id);
+        evidence('user.note', { text, ...(images.length ? { images: images.map(imageMetadata) } : {}) });
         betweenTurns = false; lastRequest = Date.now();
-        await adapter.sendPrompt(input);
+        display.startActivity(`${agentName} is working...`);
+        await adapter.sendPrompt(text, images);
       } catch (error) { finish({ status: 'failed', reason: error.message }); }
       finally { interactions.delete(pending); }
     })();
@@ -124,20 +133,26 @@ export async function supervise(store, task, options = {}) {
   adapter.on('exit', result => { if (!ending) finish({ status: 'interrupted', reason: `Agent exited without a final result (code ${result.code}, signal ${result.signal}).` }); });
   process.on('SIGINT', onSignal); process.on('SIGTERM', onSignal);
   try {
+    display.startActivity('Goddard: preparing task...');
+    rememberImages(store, task, options.images, run.id);
+    const images = loadImages(store, task);
     seedCheckpoint(store, task);
     await capture();
     evidence('run.started', { provider, account: options.accountName ?? 'current', model: options.model ?? null, effort: options.effort ?? null,
-      permissions: { bypassPermissions: options.bypassPermissions, readOnly: Boolean(options.readOnly), ...(provider === 'claude' ? { mode: options.claudePermissionMode } : {}) },
+      permissions: { mode: options.permissionMode, bypassPermissions: options.bypassPermissions, readOnly: options.readOnly },
       interactive: Boolean(interaction), checkpointSeconds, snapshotSeconds, warn, stop });
     if (options.bypassPermissions) log(provider === 'codex'
       ? 'Permission bypass enabled: Codex approvals and sandbox disabled.'
       : 'Permission bypass enabled: Claude bypassPermissions mode.');
     log(`Task ${task}\nAgent: ${provider}\nWorkspace: ${store.workspace}\nPress Ctrl+C to prepare a handoff; press again to stop immediately.`);
+    display.startActivity(`Goddard: connecting to ${agentName}...`);
     windows = await adapter.connect();
     const preflight = usageDecision(windows, { warn, stop });
     if (preflight.action === 'drain') finish({ status: 'limited', reason: `Usage is already ${preflight.usedPercent.toFixed(1)}%; no task turn started.` });
     if (!outcome) {
-      await adapter.startTask(buildPrompt(store, task));
+      if (images.length) log(`Sending ${images.length} saved image attachment(s).`);
+      display.startActivity(`${agentName} is working...`);
+      await adapter.startTask(buildPrompt(store, task), images);
       ready = true;
       const decision = usageDecision(windows, { warn, stop });
       if (!outcome && decision.action === 'drain') void drain('Usage threshold reached', 'limited');
@@ -169,6 +184,7 @@ export async function supervise(store, task, options = {}) {
     process.off('SIGINT', onSignal); process.off('SIGTERM', onSignal);
     // Do not release the workspace lock before the owned process has actually exited.
     try {
+      display.startActivity('Goddard: saving handoff...');
       if (outcome?.status !== 'finished' && adapter.interrupt) await Promise.race([adapter.interrupt().catch(() => {}), new Promise(resolve => { const timer = setTimeout(resolve, 2000); timer.unref(); })]);
       await adapter.close();
       await Promise.allSettled([...interactions]);
@@ -181,12 +197,13 @@ export async function supervise(store, task, options = {}) {
       evidence('run.ended', outcome ?? { status: 'failed' });
       if (!options.holdLock) store.endRun(run.id, outcome?.status ?? 'failed');
       const file = writeHandoff(store, task);
+      display.stopActivity();
       log(`Run ${outcome?.status ?? 'failed'}. Handoff: ${file}`);
       if (outcome?.reason) log(outcome.reason);
     } catch (error) {
       evidence('shutdown.error', { message: error.message });
       throw new Error(`${error.message} Run remains locked; use goddard recover only after its processes have exited.`);
-    }
+    } finally { display.stopActivity(); }
   }
   return { ...outcome, windows, limitInfo, runId: run.id, handoff: writeHandoff(store, task) };
 }

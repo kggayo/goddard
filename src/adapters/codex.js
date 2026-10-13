@@ -6,9 +6,9 @@ import { requestUser, cancelRequests } from './requests.js';
 import { resolvePermissions } from '../permissions.js';
 
 export class CodexAdapter extends EventEmitter {
-  constructor({ workspace, model, effort, interactive = false, readOnly = false, bypassPermissions = false, binary, env, args = ['app-server', '--listen', 'stdio://'] }) {
+  constructor({ workspace, model, effort, interactive = false, permissionMode, readOnly = false, bypassPermissions = false, binary, env, args = ['app-server', '--listen', 'stdio://'] }) {
     super(); Object.assign(this, { workspace, model, effort, interactive, readOnly, binary, args, env },
-      resolvePermissions({ provider: 'codex', readOnly, bypassPermissions })); this.fileChanges = new Map();
+      resolvePermissions({ provider: 'codex', permissionMode, readOnly, bypassPermissions })); this.fileChanges = new Map();
   }
   async connect() {
     this.transport = new Transport(this.binary ?? executable('codex'), this.args, this.workspace, this.env);
@@ -30,17 +30,19 @@ export class CodexAdapter extends EventEmitter {
       const windows = codexUsage(result); this.emit('usage', windows); return windows;
     } catch (error) { this.emit('evidence', 'usage.unavailable', { message: error.message }); return []; }
   }
-  async startTask(prompt) {
+  async startTask(prompt, images = []) {
     const params = { cwd: this.workspace,
-      approvalPolicy: this.interactive && !this.readOnly && !this.bypassPermissions ? 'on-request' : 'never',
+      approvalPolicy: this.permissionMode === 'auto' || (this.interactive && this.permissionMode === 'default') ? 'on-request' : 'never',
+      approvalsReviewer: this.permissionMode === 'auto' ? 'auto_review' : 'user',
       sandbox: this.bypassPermissions ? 'danger-full-access' : this.readOnly ? 'read-only' : 'workspace-write' };
     if (this.model) params.model = this.model;
     const result = await this.rpc.request('thread/start', params);
     this.thread = result.thread.id; this.emit('session', this.thread);
-    await this.sendPrompt(prompt);
+    await this.sendPrompt(prompt, images);
   }
-  async sendPrompt(prompt) {
-    const turn = await this.rpc.request('turn/start', { threadId: this.thread, input: [{ type: 'text', text: prompt }], ...(this.effort ? { effort: this.effort } : {}) });
+  async sendPrompt(prompt, images = []) {
+    const input = [{ type: 'text', text: prompt || 'Please review the attached images.' }, ...images.map(image => ({ type: 'localImage', path: image.path }))];
+    const turn = await this.rpc.request('turn/start', { threadId: this.thread, input, ...(this.effort ? { effort: this.effort } : {}) });
     this.turn = turn.turn.id;
   }
   async requestCheckpoint(prompt) {

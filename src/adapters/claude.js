@@ -4,10 +4,11 @@ import { executable, id } from '../util.js';
 import { requestUser, cancelRequests } from './requests.js';
 import { resolvePermissions } from '../permissions.js';
 
-export function claudeArgs({ model, effort, readOnly, bypassPermissions, claudePermissionMode, allowedTools = [] }) {
-  const permissions = resolvePermissions({ provider: 'claude', readOnly, bypassPermissions, claudePermissionMode });
+export function claudeArgs({ model, effort, permissionMode, readOnly, bypassPermissions, claudePermissionMode, allowedTools = [] }) {
+  const permissions = resolvePermissions({ provider: 'claude', permissionMode, readOnly, bypassPermissions, claudePermissionMode });
+  const nativeMode = { default: 'acceptEdits', auto: 'auto', 'read-only': 'plan', bypass: 'bypassPermissions' }[permissions.permissionMode];
   return ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--permission-prompt-tool', 'stdio',
-    '--permission-mode', readOnly ? 'plan' : permissions.claudePermissionMode,
+    '--permission-mode', nativeMode,
     ...allowedTools.flatMap(tool => ['--allowedTools', tool]), ...(model ? ['--model', model] : []), ...(effort ? ['--effort', effort] : [])];
 }
 
@@ -20,9 +21,9 @@ export function claudeEnv(effort, base = process.env) {
 }
 
 export class ClaudeAdapter extends EventEmitter {
-  constructor({ workspace, model, effort, readOnly = false, bypassPermissions = false, claudePermissionMode, allowedTools = [], binary, args, env }) {
+  constructor({ workspace, model, effort, permissionMode, readOnly = false, bypassPermissions = false, claudePermissionMode, allowedTools = [], binary, args, env }) {
     super(); Object.assign(this, { workspace, model, effort, readOnly, allowedTools, binary, args, env },
-      resolvePermissions({ provider: 'claude', readOnly, bypassPermissions, claudePermissionMode }));
+      resolvePermissions({ provider: 'claude', permissionMode, readOnly, bypassPermissions, claudePermissionMode }));
     this.pendingPrompts = new Set(); this.hasMessageAttribution = false;
     this.windows = new Map();
   }
@@ -45,12 +46,14 @@ export class ClaudeAdapter extends EventEmitter {
     } finally { clearTimeout(timer); this.initializeResolve = null; this.initializeReject = null; }
     return [];
   }
-  async startTask(prompt) { this.sendPrompt(prompt); }
-  sendPrompt(prompt) {
+  async startTask(prompt, images = []) { this.sendPrompt(prompt, images); }
+  sendPrompt(prompt, images = []) {
     const uuid = id();
     this.pendingPrompts.add(uuid);
     try {
-      this.transport.send({ type: 'user', uuid, message: { role: 'user', content: prompt }, parent_tool_use_id: null, session_id: this.session ?? '' });
+      const content = images.length ? [{ type: 'text', text: prompt || 'Please review the attached images.' },
+        ...images.map(image => ({ type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.bytes.toString('base64') } }))] : prompt;
+      this.transport.send({ type: 'user', uuid, message: { role: 'user', content }, parent_tool_use_id: null, session_id: this.session ?? '' });
     } catch (error) { this.pendingPrompts.delete(uuid); throw error; }
   }
   async requestCheckpoint(prompt) { this.sendPrompt(prompt); }

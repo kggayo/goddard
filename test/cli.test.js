@@ -28,3 +28,10 @@ test('the regression hook rejects a real SQLite import', () => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /SQLite must not be loaded/);
 });
+
+test('help presents provider-neutral permission modes', () => {
+  const result = spawnSync(process.execPath, [cli, '--help'], { cwd: root, encoding: 'utf8', windowsHide: true });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /--permission-mode MODE\s+default \(default\), auto, read-only, or bypass/);
+  assert.doesNotMatch(result.stdout, /--claude-permission-mode/);
+});

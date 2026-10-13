@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
 import { emptyCheckpoint } from '../../src/checkpoint.js';
+import { hash } from '../../src/util.js';
 
 const [provider, mode, checkpoint] = process.argv.slice(2);
 const directory = process.env[provider === 'codex' ? 'CODEX_HOME' : 'CLAUDE_CONFIG_DIR'];
@@ -26,8 +27,8 @@ const save = status => fs.writeFileSync(checkpoint, JSON.stringify({ ...emptyChe
 function complete() {
   fs.writeFileSync('restored.txt', 'Account handoff completed.'); save('complete'); done();
 }
-function work(text) {
-  prompt = text; trace({ event: 'turn', prompt, model, effort });
+function work(text, images = []) {
+  prompt = text; trace({ event: 'turn', prompt, model, effort, images: images.map(image => hash(provider === 'codex' ? fs.readFileSync(image.path) : Buffer.from(image.source.data, 'base64'))) });
   if (config.scenario === 'hang') return;
   if (config.scenario === 'error') { done({ message: 'Sandbox setup failed.', codexErrorInfo: 'sandboxError' }); return; }
   if (config.scenario === 'destination') {
@@ -64,8 +65,10 @@ readline.createInterface({ input: process.stdin }).on('line', line => {
   if (provider === 'claude') {
     if (message.type === 'control_request') send({ type: 'control_response', response: { subtype: 'success', request_id: message.request_id, response: {} } });
     if (message.type === 'user') {
-      if (message.message.content.startsWith('Goddard checkpoint request')) { save('in_progress'); done(); done(); }
-      else work(message.message.content);
+      const content = message.message.content;
+      const text = typeof content === 'string' ? content : content.filter(item => item.type === 'text').map(item => item.text).join('\n');
+      if (text.startsWith('Goddard checkpoint request')) { save('in_progress'); done(); done(); }
+      else work(text, typeof content === 'string' ? [] : content.filter(item => item.type === 'image'));
     }
     return;
   }
@@ -76,7 +79,7 @@ readline.createInterface({ input: process.stdin }).on('line', line => {
     case 'account/read': reply({ account: config.auth === false ? null : { type: 'chatgpt' }, requiresOpenaiAuth: true }); break;
     case 'account/rateLimits/read': reply({ rateLimits: { primary: { usedPercent: config.quota ?? 10, resetsAt: Date.now() / 1000 + 600 } } }); break;
     case 'thread/start': model = message.params.model; trace({ event: 'thread', ...message.params }); reply({ thread: { id: `session-${path.basename(directory)}` } }); break;
-    case 'turn/start': effort = message.params.effort; reply({ turn: { id: 'turn' } }); setTimeout(() => work(message.params.input[0].text), 20); break;
+    case 'turn/start': effort = message.params.effort; reply({ turn: { id: 'turn' } }); setTimeout(() => work(message.params.input[0].text, message.params.input.filter(item => item.type === 'localImage')), 20); break;
     case 'turn/steer': reply({}); save('in_progress'); done(); break;
     case 'turn/interrupt': reply({}); break;
     default: send({ id: message.id, error: { message: 'Unsupported method' } });

@@ -7,6 +7,8 @@ Goddard's job is simple: keep a coding task understandable and recoverable when 
 - [x] Managed Codex and Claude Code sessions.
 - [x] Structured checkpoints, workspace evidence, and portable handoffs.
 - [x] Interactive questions, approvals, follow-ups, model and effort selection.
+- [x] Shared permission modes across Codex and Claude.
+- [x] Multiline replies, image attachments, and a terminal waiting indicator.
 - [x] Automatic account-profile discovery, selection, and quota failover.
 - [x] Explicit permission bypass for managed Claude and Codex runs.
 - [x] Create and run a task in one command with `goddard start`.

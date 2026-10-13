@@ -64,6 +64,10 @@ export class Store {
         return event.type === 'user.note' ? [{ ...payload, imported: false }] : (payload.sourceNotes ?? []).map(note => ({ ...note, imported: true }));
       });
   }
+  images(task) {
+    return this.db.prepare("SELECT payload FROM events WHERE task = ? AND type = 'user.images' ORDER BY seq").all(task)
+      .flatMap(event => JSON.parse(event.payload).images);
+  }
   checkpoint(task, data) {
     const json = JSON.stringify(data), digest = hash(json);
     const latest = this.latestCheckpoint(task);

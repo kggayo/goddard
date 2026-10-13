@@ -30,6 +30,9 @@ try {
     const help = cli(args, true);
     assert.match(help, /durable handoffs between coding agents/);
     assert.match(help, /--dangerously-skip-permissions/);
+    assert.match(help, /--permission-mode MODE/);
+    assert.match(help, /--image PATH/);
+    assert.doesNotMatch(help, /--claude-permission-mode/);
     assert.match(help, /start "goal"/);
     assert.match(help, /update \[--check\]/);
   }

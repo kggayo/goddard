@@ -7,6 +7,7 @@ import { captureWorkspace } from './workspace.js';
 import { exportBundle, importBundle, unpackBundle, writeHandoff } from './handoff.js';
 import { resolvePermissions } from './permissions.js';
 import { usageDecision } from './usage.js';
+import { checkImageLimits, readImage } from './images.js';
 
 const help = `Goddard ${packageVersion} — durable handoffs between coding agents
 
@@ -37,6 +38,7 @@ Options:
   --version, -v                     Show the installed Goddard version
   --workspace PATH                  Workspace root (default: current directory)
   --model NAME                      Optional provider-specific model override
+  --image PATH, -i PATH              Attach an image (repeatable; start/run)
   --account NAME                    auto (default), current, or a listed profile name
   --no-failover                     Select an account automatically, but stop at its limit
   --effort LEVEL                    Per-run reasoning effort (model dependent)
@@ -49,9 +51,9 @@ Options:
   --warn N --stop N                 Usage thresholds, percent consumed (75 / 85)
   --grace-seconds N                 Time allowed for a final checkpoint (default: 30)
   --max-seconds N                   Limit a run's duration (default: unlimited)
-  --read-only                       Use the provider's read-only / planning mode
-  --dangerously-skip-permissions     Bypass provider approvals; also disables Codex sandbox
-  --claude-permission-mode MODE      acceptEdits (default), auto, or bypassPermissions
+  --permission-mode MODE            default (default), auto, read-only, or bypass
+  --read-only                       Alias for --permission-mode read-only
+  --dangerously-skip-permissions     Alias for --permission-mode bypass
   --allow-tool RULE                 Claude tool permission rule (repeatable)
   --json                            Print machine-readable results (except start/run)
 
@@ -65,6 +67,7 @@ export async function main(argv = process.argv.slice(2), { runTask, update } = {
   const { values: flags, positionals } = parseArgs({ args: argv, allowPositionals: true, options: {
     workspace: { type: 'string', default: process.cwd() }, agent: { type: 'string', default: 'codex' },
     model: { type: 'string' }, file: { type: 'string' }, out: { type: 'string' }, 'goal-file': { type: 'string' },
+    image: { type: 'string', multiple: true, short: 'i', default: [] },
     account: { type: 'string', default: 'auto' }, path: { type: 'string' }, 'no-failover': { type: 'boolean' },
     effort: { type: 'string' }, interactive: { type: 'boolean' }, 'non-interactive': { type: 'boolean' },
     plain: { type: 'boolean' }, 'no-color': { type: 'boolean' },
@@ -73,11 +76,12 @@ export async function main(argv = process.argv.slice(2), { runTask, update } = {
     warn: { type: 'string', default: '75' }, stop: { type: 'string', default: '85' },
     'read-only': { type: 'boolean' }, json: { type: 'boolean' }, help: { type: 'boolean', short: 'h' }, probe: { type: 'boolean' },
     version: { type: 'boolean', short: 'v' }, check: { type: 'boolean' },
-    'claude-permission-mode': { type: 'string' }, 'dangerously-skip-permissions': { type: 'boolean' },
+    'permission-mode': { type: 'string' }, 'claude-permission-mode': { type: 'string' }, 'dangerously-skip-permissions': { type: 'boolean' },
     'allow-tool': { type: 'string', multiple: true, default: [] }
   } });
   const [command, target, ...extra] = positionals;
   if (flags.version) { console.log(packageVersion); return; }
+  if (flags.image.length && !['start', 'run'].includes(command)) throw new Error('--image is supported by start and run.');
   const print = value => console.log(flags.json ? JSON.stringify(value, null, 2) : typeof value === 'string' ? value : JSON.stringify(value, null, 2));
   if (!command || flags.help || command === 'help') { console.log(help); return; }
   if (flags.check && command !== 'update') throw new Error('--check is only supported by goddard update.');
@@ -217,8 +221,10 @@ export async function main(argv = process.argv.slice(2), { runTask, update } = {
 }
 
 function runOptions(flags) {
+  const images = flags.image.map(file => readImage(file, flags.workspace));
+  checkImageLimits(images);
   if (!['codex', 'claude'].includes(flags.agent)) throw new Error('--agent must be codex or claude.');
-  const permissions = resolvePermissions({ provider: flags.agent, readOnly: flags['read-only'],
+  const permissions = resolvePermissions({ provider: flags.agent, permissionMode: flags['permission-mode'], readOnly: flags['read-only'],
     bypassPermissions: flags['dangerously-skip-permissions'], claudePermissionMode: flags['claude-permission-mode'] });
   if (flags.interactive && flags['non-interactive']) throw new Error('Choose either --interactive or --non-interactive.');
   if (flags.effort && !/^[a-z][a-z0-9_-]{0,49}$/.test(flags.effort)) throw new Error('--effort must be a provider effort level, such as low, medium, or high.');
@@ -226,7 +232,7 @@ function runOptions(flags) {
   if (flags.interactive && !(process.stdin.isTTY && process.stdout.isTTY)) throw new Error('--interactive requires a terminal. Use --non-interactive for redirected input.');
   const numeric = (key, min, max) => { const value = Number(flags[key]); if (!Number.isFinite(value) || value < min || value > max) throw new Error(`--${key} must be between ${min} and ${max}.`); return value; };
   const options = { provider: flags.agent, account: flags.account, noFailover: flags['no-failover'], model: flags.model, effort: flags.effort, readOnly: flags['read-only'],
-    plain: flags.plain, noColor: flags['no-color'],
+    plain: flags.plain, noColor: flags['no-color'], images,
     interactive: !flags['non-interactive'] && Boolean(flags.interactive || (process.stdin.isTTY && process.stdout.isTTY)),
     ...permissions, allowedTools: flags['allow-tool'],
     checkpointSeconds: numeric('checkpoint-seconds', 5, 86400), snapshotSeconds: numeric('snapshot-seconds', 1, 3600),

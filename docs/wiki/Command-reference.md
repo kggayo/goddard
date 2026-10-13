@@ -1,6 +1,6 @@
 # Command reference
 
-Examples target Goddard 0.6.0. Run `goddard --help` for your installed CLI. Replace `TASK_ID`, `NAME`, and `PATH` with your own values; don't type the placeholders literally. Choose either `--agent claude` or `--agent codex` where a provider is needed; the default is Codex.
+Examples target Goddard 0.7.0. Run `goddard --help` for your installed CLI. Replace `TASK_ID`, `NAME`, and `PATH` with your own values; don't type the placeholders literally. Choose either `--agent claude` or `--agent codex` where a provider is needed; the default is Codex.
 
 ## Everyday commands
 
@@ -55,6 +55,7 @@ Import requires restoring the matching workspace first. Checkpoints have a defin
 | --- | --- |
 | `--agent codex` / `--agent claude` | Codex by default. |
 | `--model NAME` | Inherit selected profile's model default when omitted. |
+| `--image PATH`, `-i PATH` | Attach an image; repeat for multiple images. Paths are relative to the workspace. |
 | `--effort LEVEL` | Inherit provider default when omitted; support depends on model and account. |
 | `--account NAME` | `auto`; explicit profile names pin that profile and disable failover. |
 | `--no-failover` | Keep automatic startup selection, then stop at that profile's quota limit. |
@@ -62,12 +63,14 @@ Import requires restoring the matching workspace first. Checkpoints have a defin
 | `--non-interactive` | Disable input prompts. Also the default with redirected input/output. |
 | `--plain` | Show original Markdown without terminal styling. |
 | `--no-color` | Render Markdown without colors or text styles. |
-| `--read-only` | Codex read-only sandbox or Claude planning mode; decline escalations. |
-| `--dangerously-skip-permissions` | Bypass provider approvals; also disable Codex's sandbox. Explicit opt-in each invocation. |
-| `--claude-permission-mode MODE` | Claude only: `acceptEdits` (default), `auto`, or `bypassPermissions`. |
+| `--permission-mode MODE` | Shared across agents: `default` (default), `auto`, `read-only`, or `bypass`. Each adapter translates the mode into native settings. |
+| `--read-only` | Compatibility alias for `--permission-mode read-only`. |
+| `--dangerously-skip-permissions` | Compatibility alias for `--permission-mode bypass`; explicit opt-in each invocation. |
 | `--allow-tool RULE` | Repeatable Claude allow-tool rule, forwarded unchanged. |
 
 [Permissions and bypass](https://github.com/kggayo/goddard/wiki/Permissions-and-bypass) explains the access these options grant and incompatible combinations. Explicit run settings survive automatic account failover, but must be repeated on your next `run` invocation.
+
+The deprecated `--claude-permission-mode` option is retained only for existing scripts. Use the shared `--permission-mode` option for new commands; the permissions page lists the migration equivalents.
 
 ## Checkpoint, capture, and usage options
 

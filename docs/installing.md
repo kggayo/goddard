@@ -31,7 +31,7 @@ To resume an existing task, use `goddard run TASK_ID --agent codex --effort high
 To pin the version documented by this guide:
 
 ```sh
-npm install --global https://github.com/kggayo/goddard/releases/download/v0.6.0/goddard.tgz
+npm install --global https://github.com/kggayo/goddard/releases/download/v0.7.0/goddard.tgz
 ```
 
 You can also download `goddard.tgz` and `SHA256SUMS` from the same release, compare the file's SHA-256 hash, then install locally:

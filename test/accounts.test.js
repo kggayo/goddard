@@ -11,6 +11,7 @@ import { ClaudeAdapter } from '../src/adapters/claude.js';
 import { checkpointFile } from '../src/checkpoint.js';
 import { isAlive } from '../src/util.js';
 import { temp, setup } from './helpers.js';
+import { imageFromBytes, loadImages } from '../src/images.js';
 
 const fixture = fileURLToPath(new URL('./fixtures/account-provider.js', import.meta.url));
 function poolFor(t, provider = 'codex') {
@@ -89,10 +90,26 @@ test('quota cache respects all limiting reset windows and falls back to a finite
 });
 
 for (const provider of ['codex', 'claude']) {
-  test(`${provider} bypass survives automatic failover through the production adapter path`, async t => {
+  test(`${provider} image attachments survive automatic account failover`, async t => {
+    const image = imageFromBytes(Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'));
+    const h = harness(t, provider, { current: { scenario: 'limited' }, second: { scenario: 'destination' } }, { images: [image] });
+    const result = await runWithAccounts(h.store, h.task.id, h.options);
+    assert.equal(result.status, 'finished');
+    assert.deepEqual(result.attempts, ['current', 'second']);
+    assert.deepEqual(h.trace().filter(row => row.event === 'turn').map(row => row.images), [[image.hash], [image.hash]]);
+    assert.equal(h.store.images(h.task.id).length, 1);
+  });
+  test(`${provider} saves attachments even when no account is authenticated`, async t => {
+    const image = imageFromBytes(Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'));
+    const h = harness(t, provider, { current: { auth: false } }, { images: [image] });
+    const result = await runWithAccounts(h.store, h.task.id, h.options);
+    assert.equal(result.status, 'failed');
+    assert.deepEqual(loadImages(h.store, h.task.id)[0].bytes, image.bytes);
+  });
+  for (const permissionMode of ['bypass', 'auto']) test(`${provider} ${permissionMode} survives automatic failover through the production adapter path`, async t => {
     let transcript = '';
     const h = harness(t, provider, { current: { scenario: 'limited' }, second: { scenario: 'destination' } }, {
-      bypassPermissions: true, adapterFactory: undefined, binary: process.execPath, log: text => { transcript += text; }
+      permissionMode, adapterFactory: undefined, binary: process.execPath, log: text => { transcript += text; }
     });
     h.options.args = [fixture, provider, 'run', checkpointFile(h.store, h.task.id)];
     const result = await runWithAccounts(h.store, h.task.id, h.options);
@@ -102,13 +119,15 @@ for (const provider of ['codex', 'claude']) {
     assert.ok(fs.existsSync(path.join(h.dir, 'restored.txt')));
     const starts = h.store.events(h.task.id, 1000).filter(event => event.type === 'run.started');
     assert.equal(starts.length, 2);
-    assert.ok(starts.every(event => event.payload.permissions.bypassPermissions));
-    assert.equal(transcript.match(/Permission bypass enabled/g).length, 2);
+    assert.ok(starts.every(event => event.payload.permissions.bypassPermissions === (permissionMode === 'bypass')));
+    assert.ok(starts.every(event => event.payload.permissions.mode === permissionMode));
+    assert.equal(transcript.match(/Permission bypass enabled/g)?.length ?? 0, permissionMode === 'bypass' ? 2 : 0);
     if (provider === 'codex') {
       const threads = h.trace().filter(row => row.event === 'thread');
       assert.equal(threads.length, 2);
-      assert.ok(threads.every(row => row.sandbox === 'danger-full-access' && row.approvalPolicy === 'never'));
-    } else assert.ok(starts.every(event => event.payload.permissions.mode === 'bypassPermissions'));
+      const expected = permissionMode === 'bypass' ? ['danger-full-access', 'never', 'user'] : ['workspace-write', 'on-request', 'auto_review'];
+      for (const row of threads) assert.deepEqual([row.sandbox, row.approvalPolicy, row.approvalsReviewer], expected);
+    }
   });
 
   test(`${provider} default failover sends checkpoint, files, instructions and uncertain operations to the next account`, async t => {
