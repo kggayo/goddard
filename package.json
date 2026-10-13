@@ -1,11 +1,23 @@
 {
   "name": "goddard",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Your coding agent's best friend: saved progress, account failover, and durable handoffs",
   "homepage": "https://github.com/kggayo/goddard#readme",
-  "repository": { "type": "git", "url": "git+https://github.com/kggayo/goddard.git" },
-  "bugs": { "url": "https://github.com/kggayo/goddard/issues" },
-  "keywords": ["coding-agent", "codex", "claude-code", "handoff", "cli", "checkpoint"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kggayo/goddard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kggayo/goddard/issues"
+  },
+  "keywords": [
+    "coding-agent",
+    "codex",
+    "claude-code",
+    "handoff",
+    "cli",
+    "checkpoint"
+  ],
   "type": "module",
   "bin": {
     "goddard": "bin/goddard.js"

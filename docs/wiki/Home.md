@@ -42,6 +42,6 @@ The saved goal, your notes, the latest accepted checkpoint, outstanding operatio
 
 Automatic failover uses available profiles of the chosen provider. You can also switch from Claude to Codex, or back, with `run --agent …`. Each account still has its own quota and provider rules; Goddard cannot create extra quota.
 
-These pages describe **Goddard 0.6.0**. See the [latest release](https://github.com/kggayo/goddard/releases/latest) and run `goddard --help` to check your installed version's options.
+These pages describe **Goddard 0.7.0**. See the [latest release](https://github.com/kggayo/goddard/releases/latest) and run `goddard --help` to check your installed version's options.
 
 Prefer one document? The [full usage guide](https://github.com/kggayo/goddard/blob/main/docs/usage.md) covers the same behavior, with protocol and capture details.

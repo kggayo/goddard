@@ -4,7 +4,7 @@
 
 Keep a coding task moving when an agent stops. Goddard runs Codex or Claude Code, saves progress and workspace evidence locally, and prepares a handoff that another session can use.
 
-Goddard **0.6.0** is a local command-line supervisor. It uses your installed coding CLIs, selects an available account profile automatically, and makes no direct model API calls of its own. Its terminal renderer uses Marked, highlight.js, and ANSI-aware text layout libraries.
+Goddard **0.7.0** is a local command-line supervisor. It uses your installed coding CLIs, selects an available account profile automatically, and makes no direct model API calls of its own. Its terminal renderer uses Marked, highlight.js, and ANSI-aware text layout libraries.
 
 Every Goddard run uses the managed interface so progress, conversation evidence, tool events, and workspace changes can be captured for handoff. Interact with the agent through Goddard.
 

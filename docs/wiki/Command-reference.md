@@ -1,6 +1,6 @@
 # Command reference
 
-Examples target Goddard 0.6.0. Run `goddard --help` for your installed CLI. Replace `TASK_ID`, `NAME`, and `PATH` with your own values; don't type the placeholders literally. Choose either `--agent claude` or `--agent codex` where a provider is needed; the default is Codex.
+Examples target Goddard 0.7.0. Run `goddard --help` for your installed CLI. Replace `TASK_ID`, `NAME`, and `PATH` with your own values; don't type the placeholders literally. Choose either `--agent claude` or `--agent codex` where a provider is needed; the default is Codex.
 
 ## Everyday commands
 

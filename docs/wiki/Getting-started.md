@@ -54,7 +54,7 @@ Use either a quoted goal or `--goal-file`. If launch or login fails, the task is
 
 ## Talk, stop, and continue
 
-Interactive chat is on automatically when both input and output are terminals. Wait for the `You` prompt to send a follow-up. Enter or `/done` at that prompt saves and exits. Answer tool approvals at their own prompts. [How interaction works](https://github.com/kggayo/goddard/wiki/Interactive-chat).
+Interactive chat is on automatically when both input and output are terminals. Wait for the `You` prompt to send a follow-up. Empty Enter with no pending images, or `/done`, saves and exits. Answer tool approvals at their own prompts. [How interaction works](https://github.com/kggayo/goddard/wiki/Interactive-chat).
 
 Press Ctrl+C once to request a final checkpoint and stop. A second press stops immediately. Later, use the same task ID with `run`; add a `note` first if you have a new instruction. [Resume recipes](https://github.com/kggayo/goddard/wiki/Resuming-work).
 

@@ -22,7 +22,7 @@ Now you can wait, or open another agent and explain the whole project again. Whe
 
 **Goddard carries the work in progress to the next session.** It runs Codex or Claude Code, asks for progress checkpoints, saves workspace evidence, and hands the next account or agent a recovery brief. Less retelling. More finishing.
 
-**Early release · v0.6.0.** The core is working; real-world reports and small improvements are very welcome.
+**Early release · v0.7.0.** The core is working; real-world reports and small improvements are very welcome.
 
 [Read the wiki](https://github.com/kggayo/goddard/wiki) · [Command reference](https://github.com/kggayo/goddard/wiki/Command-reference) · [Resume unfinished work](https://github.com/kggayo/goddard/wiki/Resuming-work)
 
