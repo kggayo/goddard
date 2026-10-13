@@ -2,7 +2,7 @@
 
 ## Install once
 
-You'll need Node.js 24+, Git for Git workspaces, and an installed Claude Code or Codex CLI. Goddard uses those CLIs and their logins; installing Goddard does not install them.
+You'll need Node.js 24+, Git for Git workspaces, and an installed Claude Code or Codex CLI. Goddard uses those CLIs and their logins; installing Goddard does not install them. Projects without Git use bounded file snapshots. On Windows, Goddard needs the provider's native executable; see [installation verification](https://github.com/kggayo/goddard/blob/main/docs/usage.md#verify-the-installation) for executable overrides.
 
 ```sh
 npm install --global https://github.com/kggayo/goddard/releases/latest/download/goddard.tgz
@@ -28,7 +28,7 @@ Select the intended account in the provider's login flow. [More accounts and mod
 
 ## Start a task
 
-Open a terminal in your project's root directory:
+Open a terminal in your project's root directory. For Git projects, use the repository root rather than a subdirectory:
 
 ```sh
 cd path/to/your-project
@@ -79,3 +79,9 @@ npm uninstall --global goddard
 ```
 
 Uninstalling keeps your saved workspace tasks and profile data. See the [installation guide](https://github.com/kggayo/goddard/blob/main/docs/installing.md) for package verification and PATH troubleshooting.
+
+## Development scripts
+
+`goddard --version`, `goddard doctor`, and `goddard accounts --agent claude --probe` can check an installed release; use `--agent codex` for Codex profiles. These checks do not guarantee a model call will succeed.
+
+Commands such as `npm test`, `npm run demo`, and `npm run preview` run only from a Goddard source checkout after `npm ci`. The release package excludes development scripts and tests. See the [developer checks](https://github.com/kggayo/goddard/blob/main/docs/usage.md#developer-checks-from-a-source-checkout) before using them.

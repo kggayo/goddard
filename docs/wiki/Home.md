@@ -30,11 +30,11 @@ Chat at the `You` prompt. Press Ctrl+C once to save progress and stop. To contin
 
 ```sh
 goddard list
-goddard note TASK_ID "Yes, create a PR after the tests pass."
-goddard run TASK_ID --agent claude --model sonnet --effort medium
+goddard note TASK_ID "Yes, create a PR after the relevant tests pass."
+goddard run TASK_ID --agent claude --model sonnet --effort high
 ```
 
-Replace `TASK_ID` with the ID printed by `start` or `list`. `note` is optional when you have no new instructions. Use `run` to resume: every `start` creates a new task.
+Replace `TASK_ID` with the ID printed by `start` or `list`. `note` is optional when you have no new instructions. Use `run` to resume: every `start` creates a new task. Choose your model, effort, account, and permission flags again on each invocation.
 
 ## What travels with the handoff?
 
@@ -43,3 +43,5 @@ The saved goal, your notes, the latest accepted checkpoint, outstanding operatio
 Automatic failover uses available profiles of the chosen provider. You can also switch from Claude to Codex, or back, with `run --agent …`. Each account still has its own quota and provider rules; Goddard cannot create extra quota.
 
 These pages describe **Goddard 0.6.0**. See the [latest release](https://github.com/kggayo/goddard/releases/latest) and run `goddard --help` to check your installed version's options.
+
+Prefer one document? The [full usage guide](https://github.com/kggayo/goddard/blob/main/docs/usage.md) covers the same behavior, with protocol and capture details.

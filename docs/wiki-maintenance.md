@@ -4,6 +4,27 @@ The source of truth is `docs/wiki/` in the main repository. Contributors send no
 
 The wiki is a separate Git repository. Enable it in repository settings and create its first Home page through GitHub before cloning it. See GitHub's guides to [editing wiki pages locally](https://docs.github.com/en/communities/documenting-your-project-with-wikis/adding-or-editing-wiki-pages) and [wiki access](https://docs.github.com/en/communities/documenting-your-project-with-wikis/changing-access-permissions-for-wikis).
 
+## Keep the guides consistent
+
+The CLI implementation defines behavior. The README introduces the everyday workflow, `docs/usage.md` explains behavior in detail, and the wiki splits it into focused recipes. They can differ in depth; commands, defaults, limitations, and permissions must agree.
+
+When a behavior changes, review the matching documents in the same PR:
+
+| Topic | Documents to compare |
+| --- | --- |
+| Install, requirements, update | README, `docs/installing.md`, usage Get started / Verify the installation, wiki Getting started / Troubleshooting / Command reference |
+| Start, resume, note, recovery | README, usage Get started / Resume a stopped task / Recovery and portability, wiki Home / Resuming work / Command reference |
+| Model, effort, profiles, quota | README, usage Login / Automatic account selection / Usage monitoring, wiki Accounts and models / Command reference |
+| Interaction and permissions | README, usage Interact with your agent / Permission bypass, wiki Interactive chat / Permissions and bypass / Troubleshooting |
+| Release version and support | `package.json`, `package-lock.json`, README, usage introduction, pinned install example, wiki Home / Command reference / _Footer, SECURITY, ROADMAP |
+
+- Check `start` versus `run`, required workspace initialization, placeholders, and which options must be repeated on resume.
+- State that interaction is automatic with terminal input/output. Keep optional `--interactive` examples clearly labeled.
+- Distinguish global-package commands from source-checkout scripts, and named-profile login from native current-profile login.
+- Keep quota, bypass, capture, and imported-evidence limitations accurate in every place that explains them.
+- Verify relative and repository/wiki links, including heading anchors. Compare the published wiki with `docs/wiki/` after publishing; merging the main repository does not update the separate wiki automatically.
+- Historical release notes under `docs/releases/` describe their tagged versions. Preserve those versioned examples; fix current guidance in current guides. Clearly label any unreleased behavior until it ships.
+
 ## Review a documentation change
 
 - Check examples against `src/cli.js`, the provider adapters, and `docs/usage.md`.
@@ -15,13 +36,15 @@ The wiki is a separate Git repository. Enable it in repository settings and crea
 
 ## Publish reviewed pages
 
-Run from a clean, up-to-date checkout of `main` after the documentation PR merges. Authenticate Git as a repository maintainer. If needed, `gh auth setup-git` configures Git to use your GitHub CLI login.
+Run from a clean, up-to-date checkout of `main` after the documentation PR merges. For a new CLI release, wait for the release to publish before presenting its behavior as current on the wiki. Authenticate Git as a repository maintainer. If needed, `gh auth setup-git` configures Git to use your GitHub CLI login.
 
 The first time, clone the wiki into the ignored temporary directory:
 
 ```sh
 git clone https://github.com/kggayo/goddard.wiki.git .tmp/github-wiki
 ```
+
+The wiki checkout has its own local Git configuration. Before committing, set its `user.name` and `user.email` to your intended public contributor identity, as in the main repository; use your GitHub no-reply address if you prefer.
 
 For an existing wiki checkout, first inspect its status and pull without overwriting local work:
 

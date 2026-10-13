@@ -18,7 +18,9 @@ goddard login personal --agent codex
 goddard login work --agent codex
 ```
 
-These names label separate configuration directories. Signing the same provider account into two directories does not give it more quota.
+These names label separate configuration directories. Names start with a lowercase letter and contain 1–50 lowercase letters, digits, hyphens, or underscores. `auto`, `current`, `default`, `discovered-*`, and Windows device names are reserved. Signing the same provider account into two directories does not give it more quota.
+
+To sign in to the current CLI configuration instead, run `claude auth login` or `codex login` in that configuration's environment. Native login commands do not automatically repair a separate named Goddard profile.
 
 New managed profiles live under `~/.goddard/profiles/<provider>/<name>`. Registrations and quota cooldowns live in `~/.goddard/accounts.sqlite`. `GODDARD_HOME` can relocate this global directory; keep it outside your project. Workspace tasks live separately in the project's `.goddard/` directory.
 

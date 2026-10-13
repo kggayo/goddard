@@ -9,6 +9,6 @@
 <!-- List checks you actually ran. Say whether provider tests used fixtures or live accounts. For docs, check the commands and links you changed. -->
 
 - [ ] I reviewed the diff for private files, credentials, and unrelated changes.
-- [ ] I updated relevant documentation, or this change doesn't need it.
+- [ ] I checked related README, usage guide, installation, and wiki examples for consistency, or this change doesn't affect them.
 
 <!-- Drafts and first contributions are welcome. Tell us where you'd like feedback. -->

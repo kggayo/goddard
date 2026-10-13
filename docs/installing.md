@@ -22,14 +22,16 @@ goddard init
 goddard start "Fix the login bug and run the relevant tests" --agent codex --effort high
 ```
 
-Use `--agent claude` for Claude Code. To resume an existing task, use `goddard run TASK_ID --agent codex`; find its ID with `goddard list`. See the [full usage guide](usage.md) for login, models, effort, chat, approvals, and account switching.
+Use `--agent claude` for Claude Code. If you aren't signed in, use `goddard login main --agent codex` (or `--agent claude`) once. Interaction is automatic when input and output are terminals.
+
+To resume an existing task, use `goddard run TASK_ID --agent codex --effort high`; find its ID with `goddard list`. Repeat your chosen run options. Add `goddard note TASK_ID "instruction"` first if you have a new instruction and the old run has stopped. See [resuming work](usage.md#resume-a-stopped-task) and the [wiki](https://github.com/kggayo/goddard/wiki) for the full workflow.
 
 ## Specific versions and downloaded files
 
-For the first release:
+To pin the version documented by this guide:
 
 ```sh
-npm install --global https://github.com/kggayo/goddard/releases/download/v0.3.0/goddard.tgz
+npm install --global https://github.com/kggayo/goddard/releases/download/v0.6.0/goddard.tgz
 ```
 
 You can also download `goddard.tgz` and `SHA256SUMS` from the same release, compare the file's SHA-256 hash, then install locally:
@@ -67,7 +69,7 @@ Uninstalling removes the command and its package. Saved work in each project's `
 
 ## A few common bumps
 
-- **Unsupported Node or SQLite errors:** check `node --version` and install Node.js 24+. Goddard uses Node's built-in SQLite; some Node 24 versions print an experimental warning for database-backed commands. Starting in v0.5.1, version and help commands do not load SQLite and should not print that warning.
+- **Unsupported Node or SQLite errors:** check `node --version` and install Node.js 24+. Goddard uses Node's built-in SQLite; some Node 24 versions print an experimental warning for database-backed commands. That warning alone does not mean a command failed. Version and help commands do not load SQLite since v0.5.1; `update` also avoids SQLite.
 - **PowerShell says `npm.ps1` or `goddard.ps1` cannot run:** use `npm.cmd` and `goddard.cmd`, or open Command Prompt. No execution-policy change is needed.
 - **Command not found after installing:** reopen your terminal and check the npm global bin directory is on `PATH`. `npm prefix --global` shows the prefix; executables live directly there on Windows and in its `bin` subdirectory on macOS/Linux.
 - **Global install permission denied:** use a user-owned Node/npm installation or a Node version manager; see [npm's permissions guide](https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally).
