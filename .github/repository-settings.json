@@ -4,7 +4,7 @@
   "settings": {
     "has_issues": true,
     "has_discussions": true,
-    "has_wiki": false,
+    "has_wiki": true,
     "has_projects": false,
     "allow_squash_merge": true,
     "allow_merge_commit": false,

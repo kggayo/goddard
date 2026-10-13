@@ -51,6 +51,8 @@ GitHub may wait for a maintainer to approve your first workflow run. That's norm
 
 For documentation-only changes, check the commands and links you touched. You don't need to buy subscriptions or consume model quota to contribute.
 
+The [GitHub wiki](https://github.com/kggayo/goddard/wiki) lives in `docs/wiki/` here, so anyone can suggest a correction through a normal pull request. Edit the matching page and include any navigation changes in `_Sidebar.md`. Maintainers publish reviewed pages using the [wiki publishing guide](docs/wiki-maintenance.md).
+
 ## Find your way around
 
 | Location | Responsibility |
@@ -63,6 +65,7 @@ For documentation-only changes, check the commands and links you touched. You do
 | `src/interaction.js`, `src/terminal.js` | User input and readable output |
 | `test/fixtures/` | Fake providers for tests that don't use live accounts |
 | `docs/usage.md` | Complete user-facing behavior and limitations |
+| `docs/wiki/` | Reviewable source for the GitHub wiki |
 
 This is a Node.js 24+ project using ES modules, Node's test runner, and built-in SQLite. There is no build step. Prefer the existing small modules and style over adding a framework.
 
