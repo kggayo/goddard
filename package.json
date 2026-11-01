@@ -52,7 +52,7 @@
   "bundleDependencies": true,
   "dependencies": {
     "highlight.js": "11.12.0",
-    "marked": "18.1.0",
+    "marked": "18.1.2",
     "string-width": "8.3.0",
     "wrap-ansi": "10.0.2"
   }
